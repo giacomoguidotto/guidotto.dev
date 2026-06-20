@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<p align="center">
+  <!-- Logo slot: add assets/logo.png, assets/logo.svg, or light/dark logo variants here. -->
+</p>
 
-## Getting Started
+<h1 align="center">guidotto.dev</h1>
 
-First, run the development server:
+<p align="center">
+  <strong>Public portfolio for a backend-focused engineer building toward AI-native product and systems work.</strong><br>
+  <sub>Next.js 16 &middot; Tailwind CSS 4 &middot; Bun &middot; Notion-backed source material</sub>
+</p>
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+<p align="center">
+  <a href="https://github.com/giacomoguidotto/guidotto-dev/actions"><img src="https://github.com/giacomoguidotto/guidotto-dev/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/giacomoguidotto/guidotto-dev/blob/main/LICENSE"><img src="https://img.shields.io/github/license/giacomoguidotto/guidotto-dev" alt="License"></a>
+</p>
+
+<br>
+
+guidotto.dev is the public website for Giacomo Guidotto. It is being shaped from public-safe profile and project facts, while Notion remains the canonical source of truth.
+
+This repo owns the Next.js implementation, local validation, and reviewable exported source material. It should not become a duplicate knowledge base.
+
+## What Is Here
+
+- `src/app/`: the public website surface.
+- `public/`: static assets used by the site.
+- `.github/`: contribution, issue, pull request, security, ownership, and CI files.
+- `docs/agents/`: repo-local navigation for agent workflows.
+
+## Source Material
+
+Notion owns the canonical profile, portfolio, project, task, and personal context. When profile, project, or positioning facts might have changed, use a narrow live Notion lookup before changing public content.
+
+Do not commit raw personal information dumps or broad Notion exports to this repo.
+
+## Local Development
+
+Install dependencies:
+
+```sh
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start the development server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sh
+bun run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run the canonical local validation command:
 
-## Learn More
+```sh
+bun run ci
+```
 
-To learn more about Next.js, take a look at the following resources:
+CI mirrors this command.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tooling
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Tool | Purpose |
+| --- | --- |
+| [Bun](https://bun.sh) | Runtime and package manager |
+| [mise](https://mise.jdx.dev) | Optional local tool provisioning |
+| [Next.js](https://nextjs.org) | App Router site framework |
+| [Tailwind CSS](https://tailwindcss.com) | Styling |
+| [Biome](https://biomejs.dev) / [Ultracite](https://www.ultracite.ai) | Linting and formatting |
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Free and open source under the [MIT License](LICENSE). See [CONTRIBUTING.md](.github/CONTRIBUTING.md) to get involved.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Agents should start at [AGENTS.md](AGENTS.md).
