@@ -43,13 +43,9 @@ next-env.d.ts
 # vscode
 .vscode
 
-# Devenv
-.devenv*
-devenv.local.nix
-devenv.local.yaml
-
-# direnv
-.direnv
+# mise
+mise.local.toml
+.mise.local.toml
 
 # pre-commit
 .pre-commit-config.yaml
