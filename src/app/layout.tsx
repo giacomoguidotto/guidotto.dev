@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Giacomo Guidotto",
-  description: "My personal lore dump",
+  description:
+    "Backend-focused software engineer building toward AI-native product and systems work.",
 };
 
 export default function RootLayout({
