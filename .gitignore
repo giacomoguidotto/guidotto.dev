@@ -49,3 +49,9 @@ mise.local.toml
 
 # pre-commit
 .pre-commit-config.yaml
+
+# personal source material (Notion dump — never commit, see AGENTS.md)
+WEBSITE_INFO_DUMP.md
+
+# showpiece raw export (per-epoch Lorenz weight snapshots — quantized/compressed on ingest)
+/.showpiece

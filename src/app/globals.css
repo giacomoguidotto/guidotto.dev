@@ -1,122 +1,535 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* guidotto.dev design language — "Vitrine".
+   Work under CSS-faked glass on a cool near-black-blue stage; a warm off-white
+   thesis floats over it; the focused project's accent is earned through
+   attention. Glass is a frame, never a lens. Real WebGL stays reserved for the
+   crown jewel. Constant blur, GPU transforms only. */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-jetbrains);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.13 0.028 261.692);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.028 261.692);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(0.21 0.034 264.665);
-  --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.967 0.003 264.542);
-  --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.003 264.542);
-  --accent-foreground: oklch(0.21 0.034 264.665);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
-  --ring: oklch(0.707 0.022 261.325);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
-  --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
+  /* ---- Three-temperature palette (CONTEXT.md -> Design language) ---- */
+
+  /* Cool stage: a subtle near-black blue field. Reads as "black" with a
+     temperature, giving the project accents maximum room to pop. */
+  --stage-1: oklch(0.18 0.03 256);
+  --stage-2: oklch(0.12 0.022 259);
+  --stage-3: oklch(0.08 0.016 262);
+  --stage-deep: oklch(0.05 0.012 262);
+
+  /* Warm voice: a warm off-white / ivory type color (not clinical white). */
+  --ivory: oklch(0.93 0.022 88);
+
+  /* Project accent: earned per project. `--accent` is the vessel's full-strength
+     color; `--live-accent` is the bloom written by the reactivity root on focus.
+     There is no ambient accent. */
+
+  /* ---- CSS glass tokens: rim light, gloss sweep, specular, inner shadow ---- */
+  --glass-rim: oklch(1 0 0 / 0.16);
+  --glass-gloss: oklch(1 0 0 / 0.2);
+  --glass-specular: oklch(1 0 0 / 0.3);
+  --glass-inner-shadow: oklch(0 0 0 / 0.5);
+
+  /* Subtle film grain (the analog warmth, applied over the field). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.dark {
-  --background: oklch(0.13 0.028 261.692);
-  --foreground: oklch(0.985 0.002 247.839);
-  --card: oklch(0.21 0.034 264.665);
-  --card-foreground: oklch(0.985 0.002 247.839);
-  --popover: oklch(0.21 0.034 264.665);
-  --popover-foreground: oklch(0.985 0.002 247.839);
-  --primary: oklch(0.928 0.006 264.531);
-  --primary-foreground: oklch(0.21 0.034 264.665);
-  --secondary: oklch(0.278 0.033 256.848);
-  --secondary-foreground: oklch(0.985 0.002 247.839);
-  --muted: oklch(0.278 0.033 256.848);
-  --muted-foreground: oklch(0.707 0.022 261.325);
-  --accent: oklch(0.278 0.033 256.848);
-  --accent-foreground: oklch(0.985 0.002 247.839);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.034 264.665);
-  --sidebar-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.278 0.033 256.848);
-  --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+body {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--ivory);
+  background: var(--stage-3);
+  text-rendering: optimizeLegibility;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+/* ---------- page shell ---------- */
+
+.page {
+  position: relative;
+}
+
+/* ---------- masthead (chrome) ---------- */
+
+.masthead {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1.1rem, 2.4vw, 1.9rem) clamp(1.3rem, 3vw, 2.6rem);
+  pointer-events: none;
+}
+
+.masthead__home {
+  display: inline-flex;
+  gap: 0.7rem;
+  align-items: center;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+/* signature-scale avatar */
+.masthead__avatar {
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--ivory) 6%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ivory) 18%, transparent);
+  border-radius: 50%;
+}
+
+.masthead__avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.masthead__wordmark {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  color: color-mix(in oklch, var(--ivory) 82%, transparent);
+  letter-spacing: 0.28em;
+}
+
+/* ---------- the field (cool dark-blue stage) ---------- */
+
+.field {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  color: var(--ivory);
+  background: radial-gradient(
+    130% 105% at 50% 16%,
+    var(--stage-1) 0%,
+    var(--stage-2) 52%,
+    var(--stage-3) 100%
+  );
+  isolation: isolate;
+}
+
+/* the field tint rides the focused project's accent (earned color) */
+.field__tint {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 95% at 50% 38%,
+    color-mix(in oklch, var(--live-accent, transparent) 26%, transparent) 0%,
+    transparent 58%
+  );
+  transition: background 0.7s ease;
+}
+
+/* film grain over the field (subtle) */
+.field::after {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  content: "";
+  background-image: var(--grain);
+  mix-blend-mode: overlay;
+  opacity: 0.11;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 105% at 50% 40%,
+      transparent 44%,
+      color-mix(in oklch, var(--stage-deep) 84%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--stage-deep) 45%, transparent) 0%,
+      transparent 22%
+    );
+}
+
+.field__vessels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ---------- the glass vessel ---------- */
+
+.case {
+  position: absolute;
+  /* the work breathing (content motion is allowed; chrome stays still) */
+  animation: float 22s ease-in-out infinite;
+}
+
+.case:nth-child(2n) {
+  animation-duration: 27s;
+  animation-direction: reverse;
+}
+
+.case:nth-child(3n) {
+  animation-duration: 19s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
   }
-  body {
-    @apply bg-background text-foreground;
+  50% {
+    transform: translate3d(0, -2.2%, 0);
+  }
+}
+
+.vessel {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  color: var(--ivory);
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 1.4rem;
+  transform: translate3d(
+      calc(var(--mx, 0) * var(--pf, 0px)),
+      calc(var(--my, 0) * var(--pf, 0px)),
+      0
+    )
+    scale(var(--scale, 1));
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.55s ease,
+    opacity 0.55s ease;
+  will-change: transform;
+}
+
+.vessel--orb {
+  border-radius: 50%;
+}
+
+/* depth-of-field: far cases recede, near cases sit forward */
+.vessel[data-depth="3"] {
+  --pf: 8px;
+  --scale: 0.92;
+  opacity: 0.52;
+  filter: blur(8px);
+}
+
+.vessel[data-depth="2"] {
+  --pf: 16px;
+  --scale: 0.97;
+  opacity: 0.74;
+  filter: blur(4px);
+}
+
+.vessel[data-depth="1"] {
+  --pf: 26px;
+  --scale: 1;
+  opacity: 0.9;
+  filter: blur(1.5px);
+}
+
+/* focus mechanic — one piece sharp + bloomed, others stay back */
+.vessel:hover,
+.vessel:focus-visible,
+.vessel[data-active="true"] {
+  --scale: 1.04;
+  z-index: 5;
+  outline: none;
+  opacity: 1;
+  filter: none;
+}
+
+/* clipped surface holds the inner layers so the gloss sweep can't bleed past the
+   rounded edges (outer glow + tag live outside it and stay visible) */
+.vessel__surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  box-shadow: 0 30px 70px -28px oklch(0 0 0 / 0.85);
+  transition: box-shadow 0.5s ease;
+}
+
+.vessel:hover .vessel__surface,
+.vessel:focus-visible .vessel__surface,
+.vessel[data-active="true"] .vessel__surface {
+  box-shadow: 0 26px 80px -18px
+    color-mix(in oklch, var(--accent) 55%, transparent);
+}
+
+.vessel__media {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14%;
+  color: oklch(0.8 0.02 88);
+  background: radial-gradient(
+    120% 110% at 50% 30%,
+    color-mix(in oklch, var(--accent) 15%, oklch(0.13 0.018 258)) 0%,
+    oklch(0.09 0.012 260) 72%
+  );
+  transition:
+    color 0.5s ease,
+    background 0.5s ease;
+}
+
+.vessel:hover .vessel__media,
+.vessel:focus-visible .vessel__media,
+.vessel[data-active="true"] .vessel__media {
+  color: oklch(0.95 0.02 90);
+  background: radial-gradient(
+    120% 110% at 50% 30%,
+    color-mix(in oklch, var(--accent) 32%, oklch(0.13 0.018 258)) 0%,
+    oklch(0.09 0.012 260) 74%
+  );
+}
+
+.vessel__media .motif {
+  width: 100%;
+  height: auto;
+}
+
+/* the "glass": rim light, top gloss, specular, inner shadow (token-driven) —
+   never distorts the content underneath */
+.vessel__glass {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
+    radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
+  border: 1px solid color-mix(in oklch, white 15%, transparent);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 1px var(--glass-specular),
+    inset 0 -34px 60px var(--glass-inner-shadow);
+  transition: border-color 0.5s ease;
+}
+
+.vessel:hover .vessel__glass,
+.vessel:focus-visible .vessel__glass,
+.vessel[data-active="true"] .vessel__glass {
+  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
+  box-shadow:
+    inset 0 1px 1px color-mix(in oklch, var(--glass-specular) 80%, white),
+    inset 0 -28px 56px var(--glass-inner-shadow),
+    inset 0 0 30px -6px color-mix(in oklch, var(--accent) 55%, transparent);
+}
+
+/* gloss sweep on focus — the "glass" tell (clipped by the surface) */
+.vessel__sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 38%,
+    var(--glass-gloss) 50%,
+    transparent 62%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.9s ease;
+}
+
+.vessel:hover .vessel__sweep,
+.vessel:focus-visible .vessel__sweep,
+.vessel[data-active="true"] .vessel__sweep {
+  transform: translateX(130%);
+}
+
+.vessel__tag {
+  position: absolute;
+  bottom: -1.9rem;
+  left: 50%;
+  z-index: 4;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  color: color-mix(in oklch, var(--accent) 75%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.4s ease;
+}
+
+.vessel:hover .vessel__tag,
+.vessel:focus-visible .vessel__tag,
+.vessel[data-active="true"] .vessel__tag {
+  opacity: 0.95;
+}
+
+/* ---------- centered thesis (server-rendered LCP) ---------- */
+
+.vitrine__copy {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  align-items: center;
+  /* runs wide on purpose: the thesis is allowed to spread over the vitrine */
+  width: min(94vw, 64rem);
+  text-align: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* a soft scrim keeps the centered thesis legible over the field */
+.vitrine__copy::before {
+  position: absolute;
+  inset: -18% -24%;
+  z-index: -1;
+  content: "";
+  background: radial-gradient(
+    60% 58% at 50% 50%,
+    color-mix(in oklch, var(--stage-deep) 62%, transparent) 0%,
+    transparent 72%
+  );
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.62rem, 1vw, 0.74rem);
+  /* slight accent lean only */
+  color: color-mix(
+    in oklch,
+    var(--live-accent, var(--ivory)) 30%,
+    var(--ivory)
+  );
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  opacity: 0.78;
+  transition: color 0.6s ease;
+}
+
+.thesis {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.4vw, 4rem);
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 40,
+    "WONK" 0;
+  font-weight: 360;
+  /* a stanza of lines: let it breathe between them, slightly looser tracking */
+  line-height: 1.22;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 44px
+    color-mix(in oklch, var(--stage-deep) 85%, transparent);
+}
+
+.thesis__line {
+  display: block;
+  /* each line stays whole (no mid-line wrap); it may run over the vitrine */
+  white-space: nowrap;
+}
+
+.subline {
+  margin: 0;
+  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  font-style: italic;
+  /* slight accent lean only */
+  color: color-mix(
+    in oklch,
+    var(--live-accent, var(--ivory)) 16%,
+    var(--ivory)
+  );
+  opacity: 0.86;
+  transition: color 0.6s ease;
+}
+
+/* ---------- earned-color CTA (neutral -> project accent) ---------- */
+
+.cta {
+  --c: var(--live-accent, var(--ivory));
+  position: relative;
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.8rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  color: var(--c);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  pointer-events: auto;
+  background: color-mix(
+    in oklch,
+    var(--live-accent, transparent) 10%,
+    transparent
+  );
+  border: 1px solid color-mix(in oklch, var(--c) 55%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 0 34px -12px var(--live-accent, transparent);
+  transition:
+    color 0.45s ease,
+    border-color 0.45s ease,
+    background 0.45s ease,
+    box-shadow 0.45s ease,
+    transform 0.2s ease;
+}
+
+.cta:hover {
+  transform: translateY(-1px);
+}
+
+.cta__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--c);
+  border-radius: 999px;
+  box-shadow: 0 0 12px var(--live-accent, transparent);
+  transition:
+    background 0.45s ease,
+    box-shadow 0.45s ease;
+}
+
+/* ---------- scroll baton (chrome: static, never moves unprompted) ---------- */
+
+.scroll-baton {
+  position: absolute;
+  bottom: clamp(1.2rem, 3vh, 2.2rem);
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.66rem;
+  color: color-mix(in oklch, var(--ivory) 58%, transparent);
+  letter-spacing: 0.3em;
+  transform: translateX(-50%);
+}
+
+/* ---------- reduced motion: freeze to poster frames ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .case,
+  .vessel,
+  .vessel__sweep {
+    transition: none;
+    animation: none;
   }
 }
