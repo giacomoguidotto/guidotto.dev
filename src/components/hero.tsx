@@ -9,99 +9,119 @@
 //
 // The contact sheet carries all five planes including the AnyPINN showpiece
 // plane (it does not join the later 2x2 grid, but it is present in the hero).
-// Real per-project recordings replace the motif media as they land; the
-// composition is designed to read as intentional with a partial set.
+// The vessels are a calm display case, not links: a vessel only earns color,
+// and the browsable links to the work live in the proof grid below. Real
+// per-project recordings replace the motif media as they land; the composition
+// is designed to read as intentional with a partial set (a missing/renamed
+// content key simply drops that plane, never white-screens the route).
+//
+// Lighting follows the pointer, coordinated by VitrineStage (one vessel lit at a
+// time, one `--live-accent` write). On a fine pointer the vessels glow on hover;
+// on a coarse (touch) pointer there is no hover, so a tap lights one vessel at a
+// time and keeps it lit (re-tapping replays its spring; a tap outside dismisses)
+// while the rest stay hidden behind their depth blur. Portrait also re-authors
+// the geometry: each plane is placed from CSS custom properties so the
+// stylesheet can flank the thesis with three larger tiles and hide the two
+// deepest (see globals.css).
 
-import { ArrowUpRight } from "lucide-react";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import {
   GlassVessel,
   type PlaneSubject,
 } from "~/components/showcase/glass-vessel";
-import { ShowcaseRoot } from "~/components/showcase/showcase-root";
+import { ShowcaseRoot, useAccent } from "~/components/showcase/showcase-root";
 import { content } from "~/content";
 
-interface Plane {
-  depth: 1 | 2 | 3;
-  h: string;
-  subject: PlaneSubject;
+/** Center position + a fixed width inside the field. The position is the
+ *  vessel's center (it is center-anchored in CSS), so on resize the vessels
+ *  converge toward the middle instead of one edge. The width is a fixed length
+ *  (rem), not a vw fraction, so a vessel keeps its dimensions on resize and only
+ *  moves; its height comes from `ar` (CSS aspect-ratio). */
+interface Placement {
   w: string;
-  /** Absolute placement inside the field; leaves a central band for the thesis. */
   x: string;
   y: string;
 }
 
-const { showpiece, projects, hero, cta } = content;
+/** A placement plus its aspect ratio, depth, and the content key that fills it. */
+interface PlaneSpec extends Placement {
+  /** Width-to-height ratio (CSS aspect-ratio), shared by both layouts. */
+  ar: string;
+  depth: 1 | 2 | 3;
+  /** The content key (a project or the showpiece) that fills this plane. */
+  key: string;
+  /** Portrait placement (top-left position + width); absent means hidden on mobile. */
+  mobile?: Placement;
+}
 
-const byKey = (key: string): PlaneSubject => {
-  const project = projects.find((p) => p.key === key);
-  if (!project) {
-    throw new Error(`Unknown project: ${key}`);
-  }
-  return project;
-};
+interface Plane extends Omit<PlaneSpec, "key"> {
+  subject: PlaneSubject;
+}
 
-// Cases hug the edges and leave a central band clear for the thesis.
-const PLANES: Plane[] = [
-  { subject: showpiece, depth: 2, x: "4%", y: "13%", w: "23vw", h: "34vh" },
+const { showpiece, projects, hero } = content;
+
+// Resolve a plane's content by key. Returns undefined for an unknown key so a
+// renamed/removed subject drops just its plane instead of throwing at module
+// load and white-screening the whole route (the vitrine is designed to read
+// with a partial set).
+const subjectFor = (key: string): PlaneSubject | undefined =>
+  key === showpiece.key ? showpiece : projects.find((p) => p.key === key);
+
+// Two flanking clusters that leave a central band clear for the thesis. Each
+// vessel has a FIXED width (rem) and is anchored by its center (`x`/`y` are the
+// center, in % of the field): so on resize the vessels keep their dimensions and
+// simply slide closer together (the % centers converge) rather than stretching.
+// The fixed sizes are tuned so the clusters stay grouped without piling up; CSS
+// clamps the width down only in the final sliver before the portrait re-author,
+// as an anti-overlap safety. The three planes with a `mobile` placement (the
+// showpiece plus one warm and one cool project, for accent variety) reframe to
+// flank the thesis on portrait; the two without it drop out so the small
+// composition stays legible.
+const PLANE_SPECS: PlaneSpec[] = [
   {
-    subject: byKey("orray"),
-    depth: 1,
-    x: "6%",
-    y: "55%",
-    w: "21vw",
-    h: "31vh",
+    key: showpiece.key,
+    depth: 2,
+    x: "24%",
+    y: "33%",
+    w: "16.5rem",
+    ar: "1.08",
+    mobile: { x: "27%", y: "4%", w: "46vw" },
   },
-  { subject: byKey("scry"), depth: 2, x: "73%", y: "9%", w: "23vw", h: "30vh" },
+  { key: "orray", depth: 1, x: "23%", y: "69%", w: "15rem", ar: "1.08" },
   {
-    subject: byKey("tempo"),
+    key: "scry",
+    depth: 2,
+    x: "74%",
+    y: "27%",
+    w: "16.5rem",
+    ar: "1.24",
+    mobile: { x: "53%", y: "71%", w: "43vw" },
+  },
+  {
+    key: "tempo",
     depth: 3,
-    x: "75%",
-    y: "51%",
-    w: "21vw",
-    h: "33vh",
+    x: "73%",
+    y: "67%",
+    w: "15rem",
+    ar: "1.02",
+    mobile: { x: "4%", y: "66%", w: "45vw" },
   },
-  {
-    subject: byKey("ginevra"),
-    depth: 3,
-    x: "40%",
-    y: "5%",
-    w: "22vw",
-    h: "19vh",
-  },
+  { key: "ginevra", depth: 3, x: "50%", y: "17%", w: "14.5rem", ar: "1.85" },
 ];
+
+const PLANES: Plane[] = PLANE_SPECS.flatMap(({ key, ...rest }) => {
+  const subject = subjectFor(key);
+  return subject ? [{ ...rest, subject }] : [];
+});
 
 export function Hero() {
   return (
     <ShowcaseRoot className="field vitrine">
-      <div className="field__tint" />
-
-      <div className="field__vessels">
-        {PLANES.map((plane) => (
-          <span
-            className="case"
-            key={plane.subject.key}
-            style={
-              {
-                left: plane.x,
-                top: plane.y,
-                width: plane.w,
-                height: plane.h,
-              } as CSSProperties
-            }
-          >
-            <GlassVessel
-              depth={plane.depth}
-              shape="rect"
-              subject={plane.subject}
-            />
-          </span>
-        ))}
-      </div>
+      <VitrineStage />
 
       <div className="vignette" />
 
-      <main className="vitrine__copy">
+      <div className="vitrine__copy">
         <p className="eyebrow">{hero.eyebrow}</p>
         <h1 aria-label={hero.thesis} className="thesis">
           {hero.thesisLines.map((line) => (
@@ -111,14 +131,108 @@ export function Hero() {
           ))}
         </h1>
         <p className="subline">{hero.subline}</p>
-        <a className="cta" href="#contact">
-          <span className="cta__dot" />
-          {cta.button}
-          <ArrowUpRight size={17} />
-        </a>
-      </main>
+      </div>
 
       <p className="scroll-baton">{hero.scrollBaton}</p>
     </ShowcaseRoot>
+  );
+}
+
+// VitrineStage renders the tint + vessels and is the single coordinator for the
+// earned color: it owns `activeKey` (which one vessel is lit) and is the only
+// place that writes `--live-accent`, so hover and tap share one source of truth
+// and exactly one accent is ever live. It lives inside ShowcaseRoot to reach the
+// accent channel. On a fine pointer hover/focus set the lit key transiently; on
+// a coarse pointer a tap lights a vessel and keeps it lit (re-tapping the same
+// one just replays its spring, never dims it), and a tap anywhere outside the
+// vessels dismisses.
+function VitrineStage() {
+  const accent = useAccent();
+  const [coarse, setCoarse] = useState(false);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  // Track the primary pointer live, so a hybrid device (iPad + trackpad,
+  // Surface) that switches input mode flips between hover and tap.
+  useEffect(() => {
+    const mql = window.matchMedia("(pointer: coarse)");
+    const sync = () => setCoarse(mql.matches);
+    sync();
+    mql.addEventListener("change", sync);
+    return () => mql.removeEventListener("change", sync);
+  }, []);
+
+  // The single accent write: derive `--live-accent` from the lit key, set on
+  // activation and cleared on change / unmount. Keeping this in an effect (not
+  // inside the state updaters) leaves those updaters pure, so React can safely
+  // replay them under StrictMode / concurrency.
+  useEffect(() => {
+    if (!activeKey) {
+      return;
+    }
+    const lit = PLANES.find((plane) => plane.subject.key === activeKey);
+    if (!lit) {
+      return;
+    }
+    accent.set(lit.subject.accent);
+    return () => accent.clear();
+  }, [activeKey, accent]);
+
+  // Touch dismissal: with no hover there is no "leave", so a tap that lands
+  // outside every vessel releases the lit one (a tap on a vessel is handled by
+  // its own click, and never reaches here as an outside tap).
+  useEffect(() => {
+    if (!(coarse && activeKey)) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (!target?.closest(".vessel")) {
+        setActiveKey(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [coarse, activeKey]);
+
+  const activate = useCallback((key: string) => setActiveKey(key), []);
+  const release = useCallback(() => setActiveKey(null), []);
+
+  return (
+    <>
+      <div className="field__tint" />
+
+      <div className="field__vessels">
+        {PLANES.map((plane) => (
+          <span
+            className="case"
+            data-mobile-hidden={plane.mobile ? undefined : true}
+            key={plane.subject.key}
+            style={
+              {
+                "--x": plane.x,
+                "--y": plane.y,
+                "--w": plane.w,
+                "--ar": plane.ar,
+                ...(plane.mobile && {
+                  "--mob-x": plane.mobile.x,
+                  "--mob-y": plane.mobile.y,
+                  "--mob-w": plane.mobile.w,
+                }),
+              } as CSSProperties
+            }
+          >
+            <GlassVessel
+              active={coarse && plane.subject.key === activeKey}
+              depth={plane.depth}
+              interaction={coarse ? "tap" : "hover"}
+              onActivate={activate}
+              onDeactivate={release}
+              shape="rect"
+              subject={plane.subject}
+            />
+          </span>
+        ))}
+      </div>
+    </>
   );
 }

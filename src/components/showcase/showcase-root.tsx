@@ -67,6 +67,10 @@ export function ShowcaseRoot({
     ).matches;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
     // Reduced-motion and touch pointers get tap/focus reactions only, no parallax.
+    // This is a mount-time snapshot on purpose: the parallax loop is a progressive
+    // enhancement, so a hybrid device that boots coarse simply skips it until a
+    // reload (the earned-color reactions, which VitrineStage re-detects live, are
+    // the part that must adapt). Not worth re-wiring the rAF loop for.
     if (reduce || coarse) {
       return;
     }

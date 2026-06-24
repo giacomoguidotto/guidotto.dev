@@ -157,7 +157,8 @@ export const content: Content = {
     thesisLines: [
       "A physics library",
       "A map for tangled systems",
-      "Two productivity apps. A love letter",
+      "Two productivity apps",
+      "A love letter",
     ],
     subline: "Chasing ideas to make an impact.",
     scrollBaton: "DIVE IN ↓",
