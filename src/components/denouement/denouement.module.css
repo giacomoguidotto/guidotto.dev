@@ -94,16 +94,17 @@
 .human {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: clamp(1.75rem, 5vw, 3.5rem);
+  gap: clamp(2rem, 5vw, 4rem);
   align-items: center;
 }
 
 /* the warm portrait slot: framed like the gallery's vitrine glass, but
-   human-scale and warm. Placeholder-tolerant: a soft silhouette sits behind the
-   glass until Giacomo's portrait is dropped into the slot. */
+   human-scale and warm, and large enough to carry the close. Placeholder-
+   tolerant: a soft silhouette sits behind the glass until Giacomo's portrait is
+   dropped into the slot. */
 .portrait {
   position: relative;
-  width: clamp(9rem, 26vw, 13rem);
+  width: clamp(12rem, 34vw, 18rem);
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border-radius: 1.4rem;
@@ -163,17 +164,37 @@
 .humanText {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.5rem, 4vw, 2.4rem);
+  gap: clamp(1.6rem, 4vw, 2.6rem);
 }
 
-/* the one personal line — the warm high note of the human escalation */
-.personalLine {
-  max-width: 26ch;
+/* the greeting — the warm high note of the human escalation, given room to
+   breathe before the quieter elaboration follows */
+.greeting {
+  max-width: 16ch;
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(1.3rem, 2.6vw, 1.85rem);
-  line-height: 1.42;
+  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  font-variation-settings:
+    "opsz" 120,
+    "SOFT" 32,
+    "WONK" 0;
+  font-weight: 380;
+  line-height: 1.04;
   color: var(--ivory);
+  letter-spacing: -0.005em;
+}
+
+/* the elaboration — a quieter, reflective second voice that lands after the
+   greeting, set smaller and in italic so the rhythm of the read is greeting,
+   then aside */
+.elaboration {
+  max-width: 30ch;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+  font-style: italic;
+  line-height: 1.58;
+  color: color-mix(in oklch, var(--ivory) 74%, transparent);
 }
 
 /* ---------- the animated signature ---------- */
@@ -182,6 +203,7 @@
   display: block;
   width: clamp(8rem, 22vw, 11rem);
   height: auto;
+  margin-top: clamp(0.25rem, 1.5vw, 0.9rem);
   overflow: visible;
   color: color-mix(in oklch, var(--ivory) 82%, transparent);
 }
@@ -208,7 +230,11 @@
     text-align: center;
   }
 
-  .personalLine {
+  .greeting {
+    max-width: 18ch;
+  }
+
+  .elaboration {
     max-width: 34ch;
   }
 
