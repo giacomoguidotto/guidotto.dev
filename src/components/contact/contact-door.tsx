@@ -8,11 +8,12 @@
 // expands the form with no JS at all, never a modal or a nav. When scripting is
 // on, the same toggle is upgraded into a morph: the pill grows into a raised
 // card, the "Get in touch" label glides from the pill's centre to the card's
-// top-left, and the fields cascade in. That upgrade is the View Transitions API
-// (a shared-element morph between two DOM states) plus a CSS stagger — both
-// feature-detected and collapsed to an instant show under reduced motion or on
-// engines without the API. The open card closes on its ✕, on a click outside,
-// or on Escape; it rests on a lifted shadow rather than a page-dimming scrim.
+// top-left and settles as the card's title, and the fields cascade in. That
+// upgrade is the View Transitions API (a shared-element morph between two DOM
+// states) plus a CSS stagger — both feature-detected and collapsed to an
+// instant show under reduced motion or on engines without the API. The open
+// card closes on a click outside or on Escape; it rests on a lifted shadow
+// rather than a page-dimming scrim.
 //
 // Anti-spam is load-bearing and split across the seam: a honeypot field and the
 // Cloudflare Turnstile token ride along in the body; the actual verification,
@@ -100,15 +101,12 @@ export function ContactDoor() {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [errorReason, setErrorReason] = useState<string | null>(null);
-  // Two capabilities, resolved after mount so SSR and first paint agree:
-  //  - hydrated: JS is live, so the ✕ / outside-click closers are wired up.
-  //  - canMorph: the View Transitions API is present and motion is welcome, so
-  //    the door is allowed to grow the field cascade's start delay to match.
-  const [hydrated, setHydrated] = useState(false);
+  // canMorph: the View Transitions API is present and motion is welcome, so the
+  // door is allowed to grow the field cascade's start delay to match the morph.
+  // Resolved after mount so SSR and first paint agree.
   const [canMorph, setCanMorph] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -248,18 +246,6 @@ export function ContactDoor() {
           <span className={styles.label}>{cta.button}</span>
         </summary>
 
-        {/* JS-only closer: the no-JS door closes by toggling the summary. */}
-        {hydrated ? (
-          <button
-            aria-label="Close"
-            className={styles.close}
-            onClick={() => setDoor(false)}
-            type="button"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        ) : null}
-
         <div className={styles.panel}>
           {status === "sent" ? (
             <p className={styles.confirmation} role="status">
@@ -325,10 +311,10 @@ export function ContactDoor() {
                 <>
                   <Script async defer src={TURNSTILE_SCRIPT} />
                   <div
-                    className={`cf-turnstile ${styles.reveal}`}
+                    className="cf-turnstile"
+                    data-appearance="interaction-only"
                     data-sitekey={TURNSTILE_SITE_KEY}
                     data-theme="dark"
-                    style={revealOrder(3)}
                   />
                 </>
               ) : null}
@@ -336,7 +322,7 @@ export function ContactDoor() {
               <button
                 className={`${styles.send} ${styles.reveal}`}
                 disabled={status === "sending"}
-                style={revealOrder(4)}
+                style={revealOrder(3)}
                 type="submit"
               >
                 {cta.send}

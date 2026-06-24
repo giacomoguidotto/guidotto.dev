@@ -114,7 +114,7 @@
 
 .door[open] .summary {
   justify-content: flex-start;
-  padding: 1.2rem 1.4rem 0.4rem;
+  padding: 1.7rem 1.7rem 0.7rem;
   cursor: default;
 }
 
@@ -131,7 +131,8 @@
 }
 
 /* the travelling label — same node in both states, so the View Transition
-   slides it from the pill's centre to the card's top-left. */
+   slides it from the pill's centre to the card's top-left, where it cross-fades
+   from the small mono CTA into the card's serif title. */
 .label {
   white-space: nowrap;
 }
@@ -140,58 +141,24 @@
   view-transition-name: contact-label;
 }
 
-/* ---------- the close affordance (JS-only) ---------- */
-
-.close {
-  position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  padding: 0;
-  font-family: var(--font-mono), monospace;
-  font-size: 1.15rem;
-  line-height: 1;
-  color: color-mix(in oklch, var(--ivory) 58%, transparent);
-  cursor: pointer;
-  background: color-mix(in oklch, var(--ivory) 4%, transparent);
-  border: 1px solid color-mix(in oklch, var(--ivory) 16%, transparent);
-  border-radius: 999px;
-  transition:
-    color 0.25s ease,
-    background 0.25s ease,
-    border-color 0.25s ease;
-}
-
-.door[open] .close {
-  display: inline-flex;
-}
-
-.close:hover {
+.door[open] .label {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.55rem;
   color: var(--ivory);
-  background: color-mix(in oklch, var(--ivory) 10%, transparent);
-  border-color: color-mix(in oklch, var(--ivory) 40%, transparent);
-}
-
-.close:focus-visible {
-  outline: 2px solid color-mix(in oklch, var(--ivory) 70%, transparent);
-  outline-offset: 2px;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- the revealed form frame ---------- */
 
 .panel {
-  padding: 0 1.4rem 1.4rem;
+  padding: 0 1.7rem 1.7rem;
   text-align: left;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .field {
@@ -288,28 +255,30 @@
 }
 
 /* ---------- the field cascade ----------
-   Each .reveal element fades up on a delay set by its --reveal-index. On a
+   Each .reveal element rises into place on a delay set by its --reveal-index.
+   The stagger is deliberately wide so the fields arrive one at a time — name,
+   then email, then message, then send — like a sentence being written. On a
    morph-capable client the whole cascade is held back by --reveal-base so the
-   card finishes growing before the first field lands; elsewhere it runs at once
-   on open (still a tidy succession, just no box morph). */
+   card finishes growing before the first field lands; elsewhere it runs from
+   open (still a tidy succession, just no box morph). */
 @media (prefers-reduced-motion: no-preference) {
   .door[open] .reveal {
-    animation: revealField 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: revealField 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: calc(
       var(--reveal-base, 0ms) +
       var(--reveal-index, 0) *
-      70ms
+      150ms
     );
   }
 
   .morph[open] {
-    --reveal-base: 320ms;
+    --reveal-base: 520ms;
   }
 
   @keyframes revealField {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(14px);
     }
     to {
       opacity: 1;
