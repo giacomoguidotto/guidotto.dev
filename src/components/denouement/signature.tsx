@@ -25,15 +25,18 @@ import styles from "./denouement.module.css";
 //   Giacomo's capital G is three back-to-back strokes — the stem down, the loop,
 //   then the swoosh — followed by "iacomo" left to right. A beat, then Guidotto's
 //   capital G draws on its own (its body and its long underline sweep back to
-//   back), a beat, then "uidotto" flows in letter by letter, the last stroke
-//   easing to a gentle stop to close the mark.
+//   back), a beat, then "uidotto" flows in letter by letter, and finally the
+//   closing flourish over the t's whips out and lifts — a confident flick that
+//   keeps its pace to the end (no decelerating settle).
 //
 // Each `d` is a single-subpath centerline trace, oriented so it draws the way the
 // pen moved (the capital Gs are reversed to fall top to bottom). Re-tracing the
 // source only ever changes these `d`s (and the matching viewBox).
 const G_EASE = "cubic-bezier(0.4, 0, 0.3, 1)";
 const PEN_EASE = "cubic-bezier(0.45, 0, 0.4, 1)";
-const SETTLE_EASE = "cubic-bezier(0.2, 0.6, 0.2, 1)";
+// The flourish keeps accelerating into its end instead of easing to a stop, so
+// the pen lifts at speed (no deceleration).
+const FLICK_EASE = "cubic-bezier(0.4, 0, 1, 1)";
 
 const STROKES = [
   // Giacomo — capital G, three back-to-back strokes (stem, loop, swoosh).
@@ -105,7 +108,21 @@ const STROKES = [
     d: "M243.9 34.6C244.9 35.6 243.6 37.5 243.1 38.6C242.1 41.2 240.9 44 240.2 46.7C240 47.5 239.4 49 239.7 49.7C240 50.2 240.8 49.7 241 49.5C242 48.7 243 47.7 243.7 46.6C245.9 43.4 248.2 40.3 250.1 36.8C250.7 35.5 251.8 34.2 252.1 32.8",
     delayMs: 2180,
     durationMs: 150,
-    ease: SETTLE_EASE,
+    ease: PEN_EASE,
+  },
+  // The closing flourish over the t's — back to back with "uidotto", whipping
+  // out to the right and lifting at speed (no decelerating settle).
+  {
+    d: "M252.6 32.6C253.1 32.6 254.6 32.3 254.8 32.9C254.9 33.3 254.7 34 254.6 34.4C254.4 35.5 254.2 36.6 254 37.6C253.4 41.6 252.7 45.8 252.5 49.7C252.5 50.7 252.4 51.6 252.4 52.5C252.4 52.8 252.4 53.4 252.7 53.6C253.2 53.9 253.9 53 254.2 52.6C255.2 51.2 255.9 49.4 256.5 47.8C257.1 46.3 257.9 44.8 258.5 43.3C259.3 40.9 259.8 38.3 260.8 36C261.9 37.1 261.2 38.6 261.1 40.1C260.8 43.5 260.1 47.3 260.5 50.7C260.7 52.4 261.4 55 263.6 55.1C265.5 55.2 267.1 53 268.2 51.7C271.6 47.6 272.6 42.1 275.9 37.9C277.5 35.9 279.8 34.9 282.1 33.9C286.2 32.1 290.6 30.6 294.8 29.2C297.4 28.3 300.1 27.4 302.6 26.2C303 26 305 25.2 304.7 24.6C304.5 24 302.1 24.5 301.6 24.6C298.2 25.3 294.8 26 291.5 26.7C282.5 28.8 273.4 30.4 264.2 31.4C262.1 31.7 259.9 31.9 257.8 32.1C257.2 32.1 255.8 32.5 255.4 32.1C254.9 31.6 255.4 30.3 255.6 29.8C256 27.6 256.9 25.3 257.1 23.1",
+    delayMs: 2330,
+    durationMs: 360,
+    ease: FLICK_EASE,
+  },
+  {
+    d: "M257.2 22.8C256.8 23.1 256.6 22.6 256.6 22.3L257.2 22.8C257.7 21.9 258.2 20.8 257.4 19.9C257.8 19.5 258.1 19.3 258.1 18.7",
+    delayMs: 2690,
+    durationMs: 90,
+    ease: FLICK_EASE,
   },
 ] as const;
 
@@ -209,7 +226,7 @@ export function Signature() {
       aria-hidden="true"
       className={styles.signature}
       fill="none"
-      viewBox="0 0 261 86.3"
+      viewBox="0 0 310 86.3"
     >
       {STROKES.map((stroke, i) => (
         <path
