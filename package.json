@@ -12,7 +12,8 @@
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "ci": "bun run lint && bun run typecheck && bun run build",
+    "pack:showpiece": "bun run scripts/pack-showpiece.ts",
+    "ci": "bun run lint && bun run typecheck && bun run test && bun run build",
     "prepare": "husky"
   },
   "dependencies": {
