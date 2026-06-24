@@ -9,52 +9,62 @@
 //
 // The contact sheet carries all five planes including the AnyPINN showpiece
 // plane (it does not join the later 2x2 grid, but it is present in the hero).
+// Each vessel links to its project's public repo (the always-on proof, the same
+// cross-origin destination the proof cards use) and stays keyboard-operable.
 // Real per-project recordings replace the motif media as they land; the
-// composition is designed to read as intentional with a partial set.
+// composition is designed to read as intentional with a partial set. The
+// contact CTA lives in the lower-page contact slice, never the hero.
 
-import { ArrowUpRight } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
   GlassVessel,
   type PlaneSubject,
 } from "~/components/showcase/glass-vessel";
 import { ShowcaseRoot } from "~/components/showcase/showcase-root";
-import { content } from "~/content";
+import { content, type Project } from "~/content";
 
 interface Plane {
   depth: 1 | 2 | 3;
   h: string;
-  subject: PlaneSubject;
+  /** Subject carries a repo URL, so the plane can link to the work. */
+  subject: PlaneSubject & { repoUrl: string };
   w: string;
   /** Absolute placement inside the field; leaves a central band for the thesis. */
   x: string;
   y: string;
 }
 
-const { showpiece, projects, hero, cta } = content;
+const { showpiece, projects, hero } = content;
 
-const byKey = (key: string): PlaneSubject => {
-  const project = projects.find((p) => p.key === key);
-  if (!project) {
+const project = (key: string): Project => {
+  const found = projects.find((p) => p.key === key);
+  if (!found) {
     throw new Error(`Unknown project: ${key}`);
   }
-  return project;
+  return found;
 };
 
 // Cases hug the edges and leave a central band clear for the thesis.
 const PLANES: Plane[] = [
   { subject: showpiece, depth: 2, x: "4%", y: "13%", w: "23vw", h: "34vh" },
   {
-    subject: byKey("orray"),
+    subject: project("orray"),
     depth: 1,
     x: "6%",
     y: "55%",
     w: "21vw",
     h: "31vh",
   },
-  { subject: byKey("scry"), depth: 2, x: "73%", y: "9%", w: "23vw", h: "30vh" },
   {
-    subject: byKey("tempo"),
+    subject: project("scry"),
+    depth: 2,
+    x: "73%",
+    y: "9%",
+    w: "23vw",
+    h: "30vh",
+  },
+  {
+    subject: project("tempo"),
     depth: 3,
     x: "75%",
     y: "51%",
@@ -62,7 +72,7 @@ const PLANES: Plane[] = [
     h: "33vh",
   },
   {
-    subject: byKey("ginevra"),
+    subject: project("ginevra"),
     depth: 3,
     x: "40%",
     y: "5%",
@@ -92,6 +102,7 @@ export function Hero() {
           >
             <GlassVessel
               depth={plane.depth}
+              href={plane.subject.repoUrl}
               shape="rect"
               subject={plane.subject}
             />
@@ -101,7 +112,7 @@ export function Hero() {
 
       <div className="vignette" />
 
-      <main className="vitrine__copy">
+      <div className="vitrine__copy">
         <p className="eyebrow">{hero.eyebrow}</p>
         <h1 aria-label={hero.thesis} className="thesis">
           {hero.thesisLines.map((line) => (
@@ -111,12 +122,7 @@ export function Hero() {
           ))}
         </h1>
         <p className="subline">{hero.subline}</p>
-        <a className="cta" href="#contact">
-          <span className="cta__dot" />
-          {cta.button}
-          <ArrowUpRight size={17} />
-        </a>
-      </main>
+      </div>
 
       <p className="scroll-baton">{hero.scrollBaton}</p>
     </ShowcaseRoot>
