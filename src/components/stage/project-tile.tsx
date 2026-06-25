@@ -5,7 +5,7 @@
 // for, realised literally). It is a single <a>:
 //
 //   - at rest / mid-flight it has NO href and is non-navigating (pointer-events are
-//     off, set by the stage): a calm contact-sheet vessel, blurred by its depth veil;
+//     off, set by the stage): a calm contact-sheet vessel, softened by its depth blur;
 //   - once the morph resolves, the stage sets `href` + `data-live`, and it behaves
 //     exactly like a ProofCard: the whole card navigates to the repo, hover/focus
 //     light it, and the caption's bigger-picture copy reveals.
@@ -13,10 +13,10 @@
 // It reuses the proof grid's own CSS module for every card layer (poster, glass,
 // bloom, sweep, caption) so the resolved 2x2 is pixel-identical to the standalone
 // grid; the stage drives the vitrine<->card morph imperatively through the stable
-// data hooks (`data-key`, `data-poster`, `data-caption`, `data-veil`) and the
-// `.tile` / `.veil` classes here. The poster carries a constant-radius backdrop
-// veil whose OPACITY (never its radius) the stage fades, so soft -> sharp costs
-// nothing (CONTEXT: "don't animate the radius").
+// data hooks (`data-key`, `data-poster`, `data-caption`) and the `.tile` class
+// here. Soft -> sharp is the hero's OWN treatment: the stage fades the poster's
+// `filter: blur()` (the same per-depth radii the hero uses) to none and tightens
+// the corner from the softer vitrine radius to the proof card radius as it lands.
 //
 // The "see the story" affordance is deliberately absent: only the showpiece owns a
 // `storyHref`, and it is null until a story page is sourced (content boundary). The
@@ -85,8 +85,6 @@ export function ProjectTile({ model }: { model: TileModel }) {
           <span className={proofStyles.bloom} />
           <span className={proofStyles.glass} />
           <span className={proofStyles.sweep} />
-          {/* constant-radius depth veil; the stage fades its opacity soft -> sharp */}
-          <span className={styles.veil} data-veil />
         </span>
       </span>
       {model.showpiece ? null : <TileCaption model={model} />}

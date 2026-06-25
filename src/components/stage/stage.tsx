@@ -20,8 +20,9 @@
 //     (2026-06-25): one DOM node per project"). A sticky pin holds the scene for ~one
 //     viewport of free scrolling (a visual pin, never a scroll-jack); a single
 //     scroll-progress --p carries the four peer tiles from their scattered contact
-//     sheet onto a centred 2x2 (transform + opacity), fades each tile's constant-
-//     radius depth veil soft -> sharp, assembles the captions in, hands the thesis
+//     sheet onto a centred 2x2 (transform + opacity), clears each tile's depth blur
+//     soft -> sharp (the hero's filter:blur, cornering down to the card radius),
+//     assembles the captions in, hands the thesis
 //     baton out, and slides the AnyPINN showpiece off-stage (a curatorial set-aside).
 //     A tile is a calm, non-navigating display vessel until it resolves, at which
 //     point the stage gives it back its href + interactivity (behaviour swapped at
@@ -55,6 +56,11 @@ const MOTION_QUERY =
 const MORPH_END = 0.8;
 // Below this progress the half-formed cards are not yet navigable / focusable.
 const RESOLVE_AT = 0.85;
+
+// The corner softens at rest (a rounder vitrine vessel) and tightens to the proof
+// card's own 1.4rem as the tile lands; both in rem, interpolated across the morph.
+const REST_RADIUS = 2.4;
+const CARD_RADIUS = 1.4;
 
 const clamp = (value: number, lo: number, hi: number): number =>
   Math.min(Math.max(value, lo), hi);
@@ -92,7 +98,8 @@ const VITRINE: Record<string, VitrinePlacement> = {
 };
 
 // Depth -> the contact sheet's static blur radius and recede opacity (the hero's
-// own depth-of-field values). The radius is constant; only the veil's opacity moves.
+// own depth-of-field values). The poster wears the blur directly (filter: blur),
+// exactly as the hero vessel does, and the stage fades the radius to 0 on landing.
 const DEPTH_BLUR: Record<1 | 2 | 3, number> = { 1: 1.5, 2: 4, 3: 8 };
 const DEPTH_OPACITY: Record<1 | 2 | 3, number> = { 1: 0.9, 2: 0.74, 3: 0.52 };
 
@@ -121,11 +128,13 @@ const SHOWPIECE_MODEL: TileModel = {
 // out to its vitrine scatter point (peers) or just its recede opacity (showpiece).
 interface Rig {
   readonly caption: HTMLElement | null;
+  readonly depthBlur: number;
   readonly depthOpacity: number;
   readonly el: HTMLElement;
+  // The poster (data-poster) wears the depth blur + softened corner directly.
+  readonly poster: HTMLElement;
   readonly repoUrl: string;
   readonly showpiece: boolean;
-  readonly veil: HTMLElement | null;
   // FLIP delta + target scale: grid home -> vitrine scatter (peers only).
   readonly vscale: number;
   readonly vx: number;
@@ -163,7 +172,6 @@ const buildPeerRig = (
   }
   el.style.transform = "";
   el.style.opacity = "";
-  el.style.setProperty("--vb", `${DEPTH_BLUR[place.depth]}px`);
   const g = poster.getBoundingClientRect();
   const elRect = el.getBoundingClientRect();
   const posterCx = g.left + g.width / 2;
@@ -173,11 +181,12 @@ const buildPeerRig = (
   const vCy = pinRect.top + place.y * pinRect.height;
   return {
     caption: child(el, "[data-caption]"),
+    depthBlur: DEPTH_BLUR[place.depth],
     depthOpacity: DEPTH_OPACITY[place.depth],
     el,
+    poster,
     repoUrl: el.dataset.href ?? "",
     showpiece: false,
-    veil: child(el, "[data-veil]"),
     vscale: vitrineWidth(place, rem, vw) / g.width,
     vx: vCx - posterCx,
     vy: vCy - posterCy,
@@ -193,23 +202,32 @@ const buildShowRig = (
   vw: number
 ): Rig | null => {
   const place = placementFor(el);
-  if (!place) {
+  const poster = child(el, "[data-poster]");
+  if (!(place && poster)) {
     return null;
   }
   const w = vitrineWidth(place, rem, vw);
   el.style.position = "absolute";
   el.style.width = `${w.toFixed(2)}px`;
+  // The poster is square; pin the card's height to it. Without this the card keeps
+  // the proof grid's `height: 100%`, fills the whole pin once absolute, and the
+  // centring translate(-50%) lifts the poster off the top of the screen.
+  el.style.height = `${w.toFixed(2)}px`;
   el.style.left = `${(place.x * pinRect.width).toFixed(2)}px`;
   el.style.top = `${(place.y * pinRect.height).toFixed(2)}px`;
   el.style.transformOrigin = "50% 50%";
-  el.style.setProperty("--vb", `${DEPTH_BLUR[place.depth]}px`);
+  // The showpiece never resolves into a card, so its softness + rounder corner stay
+  // at the rest values the whole time it lingers and then sets itself aside.
+  poster.style.filter = `blur(${DEPTH_BLUR[place.depth].toFixed(2)}px)`;
+  poster.style.borderRadius = `${REST_RADIUS}rem`;
   return {
     caption: null,
+    depthBlur: DEPTH_BLUR[place.depth],
     depthOpacity: DEPTH_OPACITY[place.depth],
     el,
+    poster,
     repoUrl: "",
     showpiece: true,
-    veil: child(el, "[data-veil]"),
     vscale: 1,
     vx: 0,
     vy: 0,
@@ -217,16 +235,17 @@ const buildShowRig = (
 };
 
 // Drive one peer for the current --p: it slides + scales from its scatter point back
-// to its grid home, its veil clears soft -> sharp, its caption assembles in, and at
-// the resolve threshold it regains its href + navigability.
+// to its grid home, the hero's filter:blur on its poster clears soft -> sharp, its
+// corner tightens to the card radius, its caption assembles in, and at the resolve
+// threshold it regains its href + navigability.
 const drivePeer = (rig: Rig, p: number) => {
   const morph = smoothstep(0, 0.72, p);
   const vit = 1 - morph;
   rig.el.style.transform = `translate3d(${(rig.vx * vit).toFixed(2)}px, ${(rig.vy * vit).toFixed(2)}px, 0) scale(${(1 + (rig.vscale - 1) * vit).toFixed(4)})`;
   rig.el.style.opacity = lerp(rig.depthOpacity, 1, morph).toFixed(3);
-  if (rig.veil) {
-    rig.veil.style.opacity = vit.toFixed(3);
-  }
+  const blur = rig.depthBlur * vit;
+  rig.poster.style.filter = blur > 0.01 ? `blur(${blur.toFixed(2)}px)` : "none";
+  rig.poster.style.borderRadius = `${lerp(REST_RADIUS, CARD_RADIUS, morph).toFixed(3)}rem`;
   if (rig.caption) {
     rig.caption.style.opacity = smoothstep(0.62, 0.96, p).toFixed(3);
   }
@@ -284,14 +303,14 @@ const restoreRig = (rig: Rig) => {
   s.transformOrigin = "";
   s.position = "";
   s.width = "";
+  s.height = "";
   s.left = "";
   s.top = "";
   rig.el.removeAttribute("href");
   rig.el.removeAttribute("data-live");
   rig.el.removeAttribute("data-active");
-  if (rig.veil) {
-    rig.veil.style.opacity = "";
-  }
+  rig.poster.style.filter = "";
+  rig.poster.style.borderRadius = "";
   if (rig.caption) {
     rig.caption.style.opacity = "";
   }

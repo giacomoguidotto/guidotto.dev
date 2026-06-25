@@ -18,8 +18,8 @@
    - MOTION (a progressive enhancement on motion-welcome fine pointers): one set of
      tiles, parked in the vitrine contact sheet at rest and carried by transform /
      opacity onto a centred 2x2 as a single scroll-progress --p advances. The depth
-     softness resolves through a constant-radius veil whose OPACITY fades (never its
-     radius), and the chrome (thesis, baton, vignette, grain) hands the baton out.
+     softness resolves through the poster's own filter:blur fading to none (never an
+     animated backdrop), and the chrome (thesis, baton, vignette, grain) hands the baton out.
      Everything is transform / opacity only: GPU-composited, zero layout reflow. */
 
 /* The motion-mode scroll track: ~two viewports tall. Its first viewport drives the
@@ -150,17 +150,10 @@
   z-index: 6;
 }
 
-/* the depth veil: a CONSTANT-radius blur (per-tile --vb, set by depth) whose
-   OPACITY the stage fades from 1 (soft contact sheet) to 0 (sharp card). Fading a
-   fixed-radius backdrop blur is the cheap "develops like a photograph" soft ->
-   sharp, with no animated blur radius (CONTEXT line 229). */
-.veil {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-  border-radius: inherit;
-  -webkit-backdrop-filter: blur(var(--vb, 0));
-  backdrop-filter: blur(var(--vb, 0));
-  will-change: opacity;
+/* the poster wears the depth blur directly (the hero's own filter: blur on the
+   content, not a backdrop veil — consistent across GPUs and far closer to the hero
+   read). The stage fades the radius to none and tightens the corner as it lands;
+   hint the compositor for the per-frame filter change. */
+.tile [data-poster] {
+  will-change: filter;
 }

@@ -255,9 +255,21 @@ blocked mid-flight). The caption (title, weighted line, tag, on-focus copy, and 
 future "see the story" slot — dark until `storyHref` is sourced, see Showpiece) is
 always in the DOM and **assembles in** at the destination rather than dissolving.
 All five planes (the four peers + the showpiece) are `<a>` for DOM consistency; the
-showpiece is `href`-less throughout and sets itself aside as before. Soft → sharp is
-kept without animating a blur **radius** (CONTEXT line 229): each tile carries a
-constant-radius depth veil whose **opacity** fades as the poster sharpens.
+showpiece is `href`-less throughout and sets itself aside as before. Soft → sharp
+is the hero's own depth treatment carried onto the tile: the poster wears a
+`filter: blur()` at the same per-depth radii the hero vessel uses, and the stage
+fades that blur to none (and tightens the corner from a rounder vitrine radius to
+the proof card's 1.4rem) across the morph.
+
+**Blur mechanism (2026-06-25, revises line 229).** The first cut used a
+constant-radius `backdrop-filter` veil whose opacity faded (to honour line 229's
+"don't animate the radius"). On the deployed preview that read visibly weaker and
+smeared than the hero, and `backdrop-filter` blur strength is GPU/compositor-
+dependent. The tile now blurs the **poster content** with `filter: blur()` (the
+hero's own, consistent mechanism) and **animates the radius** to none on landing.
+This is a deliberate, bounded reversal of line 229: it animates blur on ≤5
+GPU-composited tiles over a single one-shot scroll (the hero itself already
+transitions `filter: blur()` on hover), which is acceptable for the fidelity gain.
 
 **Ownership note / integration contract.** This unified tile deliberately crosses
 the old per-slice file-ownership boundary (it supersedes the separate `GlassVessel`
