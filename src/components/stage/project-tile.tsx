@@ -4,19 +4,24 @@
 // card once landed (the "same DOM element in both states" the scroll handoff calls
 // for, realised literally). It is a single <a>:
 //
-//   - at rest / mid-flight it has NO href and is non-navigating (pointer-events are
-//     off, set by the stage): a calm contact-sheet vessel, softened by its depth blur;
-//   - once the morph resolves, the stage sets `href` + `data-live`, and it behaves
-//     exactly like a ProofCard: the whole card navigates to the repo, hover/focus
-//     light it, and the caption's bigger-picture copy reveals.
+//   - at rest it is a calm, hover-reactive contact-sheet vessel (no href, so it
+//     never navigates) that matches the hero vessel 1:1 — same depth blur, same
+//     1.4rem corner, same earn-colour-on-hover. The stage drives this through the
+//     tile's data-phase ("rest");
+//   - mid-flight (data-phase "flight") it is inert: pointer events off, no href, so
+//     a half-formed card can't be clicked or lit;
+//   - once the morph resolves (data-phase "live") the stage sets `href` and the
+//     tile behaves exactly like a ProofCard: the whole card navigates to the repo,
+//     hover/focus light it, and the caption's bigger-picture copy reveals.
 //
 // It reuses the proof grid's own CSS module for every card layer (poster, glass,
 // bloom, sweep, caption) so the resolved 2x2 is pixel-identical to the standalone
 // grid; the stage drives the vitrine<->card morph imperatively through the stable
 // data hooks (`data-key`, `data-poster`, `data-caption`) and the `.tile` class
 // here. Soft -> sharp is the hero's OWN treatment: the stage fades the poster's
-// `filter: blur()` (the same per-depth radii the hero uses) to none and tightens
-// the corner from the softer vitrine radius to the proof card radius as it lands.
+// `filter: blur()` (the same per-depth radii the hero uses, divided by the live
+// FLIP scale so the on-screen blur is exactly the hero's) to none as it lands; the
+// corner stays a constant 1.4rem (the hero's and the card's shared value).
 //
 // The "see the story" affordance is deliberately absent: only the showpiece owns a
 // `storyHref`, and it is null until a story page is sourced (content boundary). The
@@ -67,8 +72,9 @@ function TileCaption({ model }: { model: TileModel }) {
 export function ProjectTile({ model }: { model: TileModel }) {
   return (
     // No href here on purpose: the stage adds it (and turns navigation on) only
-    // once the card has resolved. At rest this is an inert, calm display vessel.
-    // Its accessible name, once it is a link, comes from its visible caption text.
+    // once the card has resolved. At rest this is a hover-reactive but
+    // non-navigating display vessel; its accessible name, once it is a link, comes
+    // from its visible caption text.
     // biome-ignore lint/a11y/useValidAnchor: href + interactivity are added by the stage at the resolve threshold (dynamic, single-node handoff).
     <a
       className={`${proofStyles.card} ${styles.tile}`}

@@ -132,16 +132,30 @@
 
 /* ---- the tile (one <a> per project) ---- */
 
-/* A tile is a non-navigating display vessel until the morph resolves it: the stage
-   removes its href and pointer events at rest / in flight, and restores both (via
-   data-live) once it is a real, legible card. */
+/* A tile moves through three interactivity phases the stage writes as data-phase:
+     - rest:   a calm, hover-reactive display vessel (exactly like the hero vessel —
+               it earns colour on hover but never navigates), so the at-rest contact
+               sheet matches the hero 1:1;
+     - flight: inert mid-morph, so a half-formed card can't be clicked or lit;
+     - live:   a real, navigable proof card (href + interactivity restored).
+   The showpiece never reaches live (it sets itself aside), so it is only ever rest
+   or flight. */
 .tile {
   pointer-events: none;
+  cursor: default;
   will-change: transform, opacity;
 }
 
-.tile[data-live="true"] {
+/* At rest the vessel takes the pointer so it can light on hover; once live it is a
+   real link. The showpiece sits in the pointer-events:none vitrine layer, so its
+   own rest pointer-events:auto is what re-enables hover for it there. */
+.tile[data-phase="rest"],
+.tile[data-phase="live"] {
   pointer-events: auto;
+}
+
+.tile[data-phase="live"] {
+  cursor: pointer;
 }
 
 /* a keyboard-focused, resolved card pulls its whole tile forward so the focus ring
@@ -150,10 +164,33 @@
   z-index: 6;
 }
 
+/* a lit vessel (hovered at rest, or the resolved active card) rises above the
+   overlapping contact sheet, mirroring the hero's :hover z-index lift. */
+.tile[data-active="true"] {
+  z-index: 5;
+}
+
+/* Ease the AT-REST hover reaction (lift, blur-clear, recede) like the hero's 0.55s
+   glass response. Gated two ways so it eases ONLY the hover: `.ready` is added a
+   frame after mount, so the initial grid -> contact-sheet placement is instant (no
+   load-time fly-apart); and it is scoped to data-phase="rest", so the per-frame
+   scroll morph (flight) stays transition-free and never lags the scroll. */
+.ready .tile[data-phase="rest"] {
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.55s ease;
+}
+
 /* the poster wears the depth blur directly (the hero's own filter: blur on the
    content, not a backdrop veil — consistent across GPUs and far closer to the hero
-   read). The stage fades the radius to none and tightens the corner as it lands;
-   hint the compositor for the per-frame filter change. */
+   read). The stage divides the blur + corner by the live scale so the on-screen
+   values are exactly the hero's; hint the compositor for the per-frame change. */
 .tile [data-poster] {
   will-change: filter;
+}
+
+/* ease the at-rest hover sharpen (see above) — declared after the base poster rule
+   so specificity ascends. */
+.ready .tile[data-phase="rest"] [data-poster] {
+  transition: filter 0.55s ease;
 }

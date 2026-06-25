@@ -271,6 +271,36 @@ This is a deliberate, bounded reversal of line 229: it animates blur on ≤5
 GPU-composited tiles over a single one-shot scroll (the hero itself already
 transitions `filter: blur()` on hover), which is acceptable for the fidelity gain.
 
+**Rest fidelity + unified vessels (2026-06-25, supersedes the corner-morph and the
+bespoke showpiece set-aside above).** The first unified-tile cut diverged from the
+hero at rest in three ways: it scaled each peer tile down from its grid cell with
+`transform: scale()`, which shrank the rasterised `filter: blur()` and
+`border-radius` by that scale (blur read too soft, worst on the sharp foreground
+Orray; corners too tight); the showpiece sat at natural size with a *different*
+(2.4rem) corner; and the at-rest tiles dropped the hero's earn-colour-on-hover. The
+corrected rule is that **the at-rest tile matches `<Hero/>` 1:1**:
+- The corner is a **constant 1.4rem** (the hero vessel's and the proof card's shared
+  value); the earlier "rounder vitrine radius that tightens to 1.4rem" is dropped.
+- `drive()` **divides the blur radius and the corner by the live FLIP scale**, so the
+  on-screen blur is exactly the hero's per-depth radius (1.5 / 4 / 8px) and the
+  corner exactly 1.4rem no matter how far down a tile is scaled. The hero's per-depth
+  recede opacity and `--scale` are reproduced too (the depth scale folds into the
+  source size).
+- At rest the tiles are **hover-reactive like the hero vessels** (a hovered/focused
+  tile lifts, clears its blur, blooms its accent, and washes the field), driven
+  through the same single-lit coordinator that lights the resolved grid.
+
+And the **five vessels are now uniform**: every tile — the four peers and the AnyPINN
+showpiece — is one rig with a **source** (its vitrine scatter point + size) and a
+**target**, driven by the *same* `drive()` (no special-cased showpiece exit). Peers
+target their own grid cell (source = vitrine, target = cell) and resolve into
+navigable cards; the showpiece's DOM home *is* the contact sheet, so its source is
+identity and its **target is a point just below the grid, off-screen** — the
+curatorial set-aside, expressed as a plain target rather than a bespoke slide. That
+below-grid target is a **placeholder**: the finale (#9) retargets the showpiece onto
+the live attractor in the showpiece section instead of a card, by changing only its
+target.
+
 **Ownership note / integration contract.** This unified tile deliberately crosses
 the old per-slice file-ownership boundary (it supersedes the separate `GlassVessel`
 `<button>` hero and `ProofCard` `<a>` grid). It currently lives **only behind
