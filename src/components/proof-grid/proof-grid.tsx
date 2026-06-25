@@ -136,6 +136,7 @@ export function ProofGrid() {
 
   return (
     <section className={styles.section}>
+      <h2 className={styles.label}>{content.work.label}</h2>
       <ul className={styles.grid} ref={scrollRef}>
         {content.projects.map((project) => (
           <li className={styles.item} data-key={project.key} key={project.key}>

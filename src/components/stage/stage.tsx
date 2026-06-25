@@ -374,6 +374,7 @@ interface Chrome {
   readonly baton: HTMLElement;
   readonly copy: HTMLElement;
   readonly grain: HTMLElement;
+  readonly label: HTMLElement;
   readonly pin: HTMLElement;
   readonly vignette: HTMLElement;
 }
@@ -390,6 +391,11 @@ const driveChrome = (chrome: Chrome, p: number, phase: Phase) => {
   chrome.copy.style.opacity = (1 - smoothstep(0.3, 0.66, p)).toFixed(3);
   chrome.copy.style.transform = `translate(-50%, calc(-50% - ${(p * 2).toFixed(3)}rem))`;
   chrome.baton.style.opacity = (1 - Math.min(1, p * 6)).toFixed(3);
+  // The grid's section label is the baton's counterpart: it hands IN as the grid
+  // resolves (the same late ramp the peer captions use), so it is invisible over
+  // the contact sheet and reads as the title of the settled grid. It lives in the
+  // sticky grid, so it carries no scroll term — pure function of progress.
+  chrome.label.style.opacity = smoothstep(0.62, 0.96, p).toFixed(3);
   chrome.pin.dataset.settling = p > 0.001 && p < 0.999 ? "true" : "false";
   if (phase === "flight") {
     chrome.pin.style.removeProperty("--live-accent");
@@ -464,6 +470,7 @@ function MotionStage() {
   const vignetteRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const batonRef = useRef<HTMLParagraphElement>(null);
+  const labelRef = useRef<HTMLHeadingElement>(null);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -479,7 +486,11 @@ function MotionStage() {
     ) {
       return;
     }
-    const chrome: Chrome = { baton, copy, grain, pin, vignette };
+    const label = labelRef.current;
+    if (!label) {
+      return;
+    }
+    const chrome: Chrome = { baton, copy, grain, label, pin, vignette };
 
     let rigs: Rig[] = [];
     const rigByEl = new Map<HTMLElement, Rig>();
@@ -700,6 +711,7 @@ function MotionStage() {
       copy.style.opacity = "";
       copy.style.transform = "";
       baton.style.opacity = "";
+      label.style.opacity = "";
       pin.style.removeProperty("--live-accent");
       pin.removeAttribute("data-settling");
       stage.style.height = "";
@@ -744,6 +756,13 @@ function MotionStage() {
           this scrolls away as a plain grid, read to its end. */}
       <div className={styles.gridStick} ref={gridRef}>
         <section className={proofStyles.section}>
+          {/* the grid's section title — invisible over the contact sheet, handed in
+              by the stage (opacity on --p) as the 2x2 settles, so it reads as the
+              title of the resolved grid. It lives in the sticky grid, so it carries
+              no scroll term (no jitter). */}
+          <h2 className={proofStyles.label} ref={labelRef}>
+            {content.work.label}
+          </h2>
           <ul className={proofStyles.grid}>
             {PEER_MODELS.map((model) => (
               <li className={proofStyles.item} key={model.key}>

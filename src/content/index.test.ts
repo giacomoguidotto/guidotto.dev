@@ -105,6 +105,10 @@ describe("projects (the four grid peers)", () => {
       expect(project.motif).toBeDefined();
     }
   });
+
+  test("the section carries the locked mono label", () => {
+    expect(content.work.label).toBe("SELECTED WORK");
+  });
 });
 
 describe("showpiece (AnyPINN)", () => {

@@ -68,6 +68,11 @@ export interface Project {
   readonly tag: string;
 }
 
+export interface WorkContent {
+  /** Mono section label over the proof grid (copy.md "2 · Proof grid"). */
+  readonly label: string;
+}
+
 export interface ShowpieceContent {
   readonly accent: string;
   /** The one live badge. */
@@ -133,6 +138,7 @@ export interface Content {
   readonly projects: readonly Project[];
   readonly showpiece: ShowpieceContent;
   readonly site: SiteContent;
+  readonly work: WorkContent;
 }
 
 const GITHUB = "https://github.com/giacomoguidotto";
@@ -163,6 +169,12 @@ export const content: Content = {
     ],
     subline: "Chasing ideas to make an impact.",
     scrollBaton: "DIVE IN ↓",
+  },
+
+  // The proof grid's mono section label (copy.md "2 · Proof grid": four peers,
+  // 2x2, no badges). The projects below ARE this "selected work".
+  work: {
+    label: "SELECTED WORK",
   },
 
   // The four grid peers (2x2), in copy.md order. AnyPINN is the showpiece, not a
