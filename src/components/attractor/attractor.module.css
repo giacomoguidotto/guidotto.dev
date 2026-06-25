@@ -1,0 +1,247 @@
+/* Attractor — the showpiece finale's surface (issue #9, skeleton cut).
+
+   Co-located module CSS, kept OUT of globals.css like the other section slices so
+   this slice owns its own surface and never merge-conflicts with the parallel
+   ones. It only READS the global design tokens (the cool --stage-* field, the warm
+   --ivory, the glass tokens, and the earned --accent the section sets from
+   content.showpiece) — it never edits them.
+
+   The live WebGL scene is not here yet; `.scene` is a quiet placeholder the R3F
+   instrument will mount into. What this stylesheet owns now is the finale stage,
+   its subtle spotlight, the quiet HUD chrome, and the AnyPINN vessel's small
+   top-left landing slot (where the scroll handoff parks the fifth vessel). */
+
+.finale {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 5vw, 3.25rem);
+  width: 100%;
+  min-height: 100svh;
+  padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.4rem, 5vw, 3rem);
+}
+
+/* ---------- intro (the eyebrow + the Fraunces line) ---------- */
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  width: min(100%, 60rem);
+  margin: 0 auto;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.62rem, 1vw, 0.74rem);
+  color: color-mix(in oklch, var(--accent) 34%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  opacity: 0.82;
+}
+
+.line {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 40,
+    "WONK" 0;
+  font-weight: 360;
+  line-height: 1.1;
+  color: var(--ivory);
+}
+
+/* ---------- the instrument (the live scene's generous stage) ---------- */
+
+.instrument {
+  position: relative;
+  width: min(100%, 60rem);
+  /* a tall, near-square field for the genuinely-3D object (drag-to-orbit later) */
+  aspect-ratio: 16 / 11;
+  margin: 0 auto;
+  overflow: hidden;
+  /* the subtle spotlight: a CSS radial vignette pooling the instrument out of the
+     cool-dark field, carrying the earned accent — not a real light. */
+  background:
+    radial-gradient(
+      120% 90% at 50% 40%,
+      color-mix(in oklch, var(--accent) 12%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      140% 120% at 50% 36%,
+      var(--stage-2) 0%,
+      var(--stage-3) 54%,
+      var(--stage-deep) 100%
+    );
+  border: 1px solid color-mix(in oklch, var(--ivory) 9%, transparent);
+  border-radius: 1.6rem;
+  box-shadow: 0 40px 90px -40px oklch(0 0 0 / 0.9);
+}
+
+/* the scene placeholder: where the WebGL attractor mounts. A quiet centered label
+   stands in for the spectacle until the lazy-loaded scene replaces it. */
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+}
+
+.scenePlaceholder {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  font-style: italic;
+  color: color-mix(in oklch, var(--ivory) 26%, transparent);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- the landed fifth vessel (AnyPINN, small, top-left) ---------- */
+
+/* the seam the Stage set-aside targets: a small glass vessel parked at the
+   instrument's top-left. [data-finale-landing] is the stable hook the Stage reads
+   to aim the departing vessel here. */
+.landing {
+  position: absolute;
+  top: clamp(0.9rem, 2.2vw, 1.6rem);
+  left: clamp(0.9rem, 2.2vw, 1.6rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+  width: clamp(4.5rem, 11vw, 6.5rem);
+}
+
+.vessel {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--accent) 12%, var(--stage-2));
+  border-radius: 1.1rem;
+  box-shadow: 0 18px 40px -22px oklch(0 0 0 / 0.85);
+}
+
+/* the glass frame over the small vessel: rim light, gloss, specular, inner shadow
+   (token-driven) — the same CSS-faked glass the contact-sheet vessels wear. */
+.vesselGlass {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
+    radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
+  border: 1px solid color-mix(in oklch, white 12%, transparent);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 1px var(--glass-specular),
+    inset 0 -22px 44px var(--glass-inner-shadow);
+}
+
+.landingTag {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  color: color-mix(in oklch, var(--accent) 72%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+
+/* ---------- HUD (quiet mono readout, bottom-right) ---------- */
+
+.hud {
+  position: absolute;
+  right: clamp(0.9rem, 2.2vw, 1.6rem);
+  bottom: clamp(0.9rem, 2.2vw, 1.6rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.hudLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  color: color-mix(in oklch, var(--ivory) 50%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+}
+
+.badge {
+  padding: 0.28rem 0.6rem;
+  margin-top: 0.2rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  color: color-mix(in oklch, var(--accent) 64%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--accent) 34%, transparent);
+  border-radius: 999px;
+}
+
+/* the interaction affordance, bottom-centre and quiet. */
+.interaction {
+  position: absolute;
+  bottom: clamp(0.9rem, 2.2vw, 1.6rem);
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  color: color-mix(in oklch, var(--ivory) 46%, transparent);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* ---------- footer (the caption + the standalone footer sentence) ---------- */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  width: min(100%, 60rem);
+  margin: 0 auto;
+}
+
+.caption {
+  max-width: 52ch;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.02rem, 1.7vw, 1.2rem);
+  line-height: 1.55;
+  color: color-mix(in oklch, var(--ivory) 84%, transparent);
+}
+
+.footline {
+  max-width: 52ch;
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  color: color-mix(in oklch, var(--ivory) 52%, transparent);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- narrow: let the HUD and interaction copy breathe ---------- */
+
+@media (max-width: 40rem) {
+  .interaction {
+    font-size: 0.56rem;
+  }
+
+  .landing {
+    width: clamp(4rem, 18vw, 5rem);
+  }
+}
