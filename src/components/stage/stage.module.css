@@ -4,34 +4,26 @@
 
    Co-located module CSS, kept OUT of globals.css so this Wave-2 slice owns its
    own surface and never edits the shared token base. It only READS the global
-   design tokens (the stage tokens --stage-*, the warm --ivory, the earned-color
-   --live-accent, and the --grain film token) and the global thesis/baton type
-   classes; it never edits them.
+   design tokens (the stage tokens --stage-*, the warm --ivory, and the earned-
+   color --live-accent); it never edits them, and it styles only its own two
+   layers — the composed <Hero /> and <ProofGrid /> keep their own surfaces.
 
    Two presentations live behind the single <Stage /> interface:
 
    - PLAIN (the default, and what reduced-motion / coarse-pointer / narrow / no-JS
-     always get): the hero, then the 2x2 grid, as two stacked sections. This is
-     the server-rendered, indexable, fully-legible fallback. It is composed from
-     the already-verified <Hero /> and <ProofGrid /> directly, so it needs no
-     styling here.
+     always get): the hero, then the 2x2 grid, as two stacked sections, composed
+     from the already-verified <Hero /> and <ProofGrid /> directly. No styling here.
 
-   - MOTION (a progressive enhancement on motion-welcome fine pointers): the same
-     proof-grid cells become the SHARED DOM elements of a FLIP morph. A sticky pin
-     holds the stage still for ~one viewport of free scrolling (a visual pin, never
-     a scroll-lock or scroll-jack), while a single scroll-progress custom property
-     --p drives the cells from a blurred, depth-stacked contact sheet (--p 0) into
-     the sharp aligned grid (--p 1): chaos -> order, soft -> sharp, depth -> flat.
-     The thesis hands the baton (rises + fades), and the AnyPINN showpiece plane
-     gives a brief "wait for me" lift then slides off-stage (a curatorial
-     set-aside, never a vanish). Everything is transform / opacity only, so the
-     morph is GPU-composited with zero layout reflow. The cell transforms are
-     written imperatively from JS (FLIP measurement); everything else reads --p
-     from CSS, so there is no per-frame React work and no animated blur radius. */
-
-.root {
-  position: relative;
-}
+   - MOTION (a progressive enhancement on motion-welcome fine pointers): the
+     curated <Hero /> is the at-rest contact sheet (the initial frame is pixel-
+     identical to the standalone hero), stacked over the real <ProofGrid />. A
+     sticky pin holds the stage for ~one viewport of free scrolling (a visual pin,
+     never a scroll-lock or scroll-jack). A single scroll-progress property --p,
+     plus a JS FLIP that carries the hero's own vitrine vessels onto the grid cards,
+     drives the handoff: the hero layer cross-fades OUT (soft -> sharp comes for
+     free, because the hero's blurred depth-led vessels give way to the sharp grid
+     cards) while the grid layer cross-fades IN. Everything is transform / opacity
+     only, so the morph is GPU-composited with zero layout reflow. */
 
 /* The motion-mode scroll track: ~two viewports tall. Its first viewport of
    scrolling drives the morph (with a short hold at the end so the resolved grid
@@ -47,7 +39,8 @@
   top: 0;
   height: 100svh;
   overflow: hidden;
-  /* the same cool near-black-blue field as the hero / grid */
+  /* a base of the same cool near-black-blue field, so the brief cross-fade window
+     between the two full-bleed layers never reveals a gap */
   background: radial-gradient(
     130% 105% at 50% 16%,
     var(--stage-1) 0%,
@@ -57,16 +50,41 @@
   isolation: isolate;
 }
 
-/* film grain over the field (reuses the global --grain token) */
-.pin::after {
+/* the at-rest layer: the real, curated <Hero /> (its own field, vitrine vessels,
+   vignette, thesis, baton). It cross-fades out as the handoff begins; its vessels
+   are carried onto the grid by JS transforms on top of this fade. */
+.heroLayer {
   position: absolute;
   inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  content: "";
-  background-image: var(--grain);
-  mix-blend-mode: overlay;
-  opacity: 0.11;
+  z-index: 1;
+  will-change: opacity;
+}
+
+/* the resolved layer: the real <ProofGrid /> on its own cool stage, cross-faded
+   up beneath the travelling vessels (opacity is driven from JS on --p). */
+.gridLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* the grid's stage (mirrors proof-grid's own stage field) plus vertical centring,
+   so the resolved 2x2 sits centred in the pinned viewport. */
+.gridStage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ivory);
+  background: radial-gradient(
+    130% 105% at 50% 16%,
+    var(--stage-1) 0%,
+    var(--stage-2) 52%,
+    var(--stage-3) 100%
+  );
+  isolation: isolate;
 }
 
 /* accent bloom — once the morph resolves, the grid's single-active-card
@@ -85,119 +103,10 @@
   transition: background 0.7s ease;
 }
 
-/* the "develops like a photograph" softness. CONTEXT is explicit that the contact
-   sheet is BLURRED and resolves soft -> sharp, and equally explicit that animating
-   the blur RADIUS is the one costly thing. So this is the prescribed compromise: a
-   frosted scrim at a CONSTANT radius whose OPACITY cross-fades out on --p. The
-   radius never animates (no per-frame filter cost, no reflow); only the layer's
-   opacity rides 1 - --p, so the work behind the glass starts soft and sharpens into
-   evidence as the grid resolves. It sits above the cards / showpiece (z2) but below
-   the thesis (z4), so the work blurs while the message never does — exactly the
-   hero's "soft-focus behind glass" relationship, now released by scroll. */
-.frost {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  opacity: calc(1 - min(1, var(--p, 0) * 1.12));
-  -webkit-backdrop-filter: blur(var(--frost-radius, 13px));
-  backdrop-filter: blur(var(--frost-radius, 13px));
-}
-
-/* the depth-of-field "atmosphere" of the contact sheet: a dimming vignette layered
-   over the frost that deepens the corners so the soft work reads as recessed, then
-   lifts on --p as the work resolves from atmosphere into evidence. */
-.atmosphere {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      120% 105% at 50% 42%,
-      transparent 36%,
-      color-mix(in oklch, var(--stage-deep) 80%, transparent) 100%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--stage-deep) 40%, transparent) 0%,
-      transparent 24%
-    );
-  opacity: calc(1 - var(--p, 0));
-}
-
-/* the grid layer: the real <ProofGrid /> centred in the pinned viewport as the
-   morph's resting 2x2. Its cells ([data-key] list items) are the shared elements
-   the JS FLIP transforms travel; the grid keeps its own single-active-card
-   coordinator, accent wiring, captions, and repo links untouched. */
-.gridStage {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-}
-
-/* the centred thesis stanza — the same Fraunces lines as the hero (reusing the
-   global .thesis / .eyebrow / .subline type), here driven to hand the baton: it
-   rises and fades as the grid forms. */
-.heroCopy {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  align-items: center;
-  width: min(95vw, 76rem);
-  text-align: center;
-  pointer-events: none;
-  opacity: calc(1 - min(1, var(--p, 0) * 2));
-  transform: translate(-50%, calc(-50% - var(--p, 0) * 3rem));
-}
-
-/* a soft scrim keeps the thesis legible over the contact sheet (mirrors the
-   hero's .vitrine__copy::before) */
-.heroCopy::before {
-  position: absolute;
-  inset: -18% -24%;
-  z-index: -1;
-  content: "";
-  background: radial-gradient(
-    60% 58% at 50% 50%,
-    color-mix(in oklch, var(--stage-deep) 62%, transparent) 0%,
-    transparent 72%
-  );
-}
-
-/* the scroll baton (extends the global .scroll-baton) — fades fast the instant
-   the handoff begins, then it is no longer the cue. */
-.baton {
-  z-index: 4;
-  opacity: calc(1 - min(1, var(--p, 0) * 6));
-}
-
-/* the AnyPINN showpiece plane — present in the contact sheet, then set aside.
-   Centre-anchored on its --sx / --sy point via the standalone `translate`
-   property, so the JS-driven `transform` (the lift + slide-off) composes on top
-   without fighting the anchor (the same split the hero uses for its float). */
-.showpiecePlane {
-  position: absolute;
-  top: var(--sy);
-  left: var(--sx);
-  z-index: 2;
-  width: clamp(11rem, 22vw, 16.5rem);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  will-change: transform, opacity;
-}
-
-/* keyboard focus during the contact-sheet phase would land on cells that are not
-   yet legible; the JS holds the grid inert below the resolve threshold, and once
-   resolved a focused card pulls its whole cell forward (the cell carries the FLIP
-   transform, so raising an inner element alone would not clear its neighbours) so
-   the focus ring is never lost behind an overlapping card. */
+/* keyboard focus during the handoff would land on cards that are not yet legible;
+   the JS holds the grid inert below the resolve threshold, and once resolved a
+   focused card pulls its whole cell forward so the focus ring is never lost behind
+   an overlapping card. */
 .gridStage [data-key]:has(:focus-visible) {
   z-index: 6;
 }
