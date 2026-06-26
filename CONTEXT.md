@@ -335,15 +335,15 @@ shares the first viewport:
 - The showpiece's set-aside target is **just below the pinned viewport** (it never
   references the grid); the finale (#9) still retargets it by changing only that target.
 
-**Ownership note / integration contract.** This unified tile deliberately crosses
-the old per-slice file-ownership boundary (it supersedes the separate `GlassVessel`
-`<button>` hero and `ProofCard` `<a>` grid). It currently lives **only behind
-`/preview/stage`** so the live homepage and the standalone `/preview/hero` +
-`/preview/proof-grid` are untouched for now — **but this `ProjectTile` motion stage
-is the canonical, final hero + grid.** The integration slice that wires the homepage
-**must adopt this**, not rebuild the old two-node hero/grid. The plain
-(reduced-motion / coarse / narrow / no-JS) fallback still composes the existing
-`<Hero />` + `<ProofGrid />`; integration may later re-home those onto the same tile.
+**Ownership note / integration contract (fulfilled #10).** This unified tile
+deliberately crosses the old per-slice file-ownership boundary (it supersedes the
+separate `GlassVessel` `<button>` hero and `ProofCard` `<a>` grid). The home page
+(#10) now composes it directly — `src/app/page.tsx` renders `<Stage />` as the
+canonical, final hero + grid, and the throwaway `/preview/*` dress-rehearsal routes
+it was first proven behind have been deleted. The plain (reduced-motion / coarse /
+narrow / no-JS) fallback still composes the existing `<Hero />` + `<ProofGrid />`
+and IS the server-rendered output; the morph only layers on for motion-welcome fine
+pointers wide enough for the 2x2.
 
 ### Showpiece — "The Attractor" (AnyPINN · Lorenz)
 

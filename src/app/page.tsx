@@ -1,8 +1,6 @@
 import { Attractor } from "~/components/attractor/attractor";
 import { ContactDoor } from "~/components/contact/contact-door";
-import contactStyles from "~/components/contact/contact-door.module.css";
 import { Denouement } from "~/components/denouement/denouement";
-import denouementStyles from "~/components/denouement/denouement.module.css";
 import { Masthead } from "~/components/masthead";
 import { Stage } from "~/components/stage/stage";
 
@@ -11,7 +9,10 @@ import { Stage } from "~/components/stage/stage";
 //
 //   hero (Vitrine) -> proof grid -> showpiece finale -> mission -> human anchor -> CTA
 //
-// The order is realised through three composed surfaces:
+// The order is realised through four self-staging surfaces. Each one carries its
+// own .stage backdrop, owns its own reactivity, and renders its own indexable,
+// static fallback, so the page is a flat, uniform list with nothing leaking up
+// to the composition root:
 //
 //   - <Stage /> owns the hero -> proof-grid handoff. It server-renders the plain,
 //     fully indexable sectioned story (Hero then ProofGrid) and upgrades, only on
@@ -39,12 +40,8 @@ export default function Home() {
       <Masthead />
       <Stage />
       <Attractor />
-      <div className={denouementStyles.stage}>
-        <Denouement />
-      </div>
-      <div className={contactStyles.stage}>
-        <ContactDoor />
-      </div>
+      <Denouement />
+      <ContactDoor />
     </main>
   );
 }

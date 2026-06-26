@@ -99,6 +99,13 @@ export function ContactDoor() {
   const wasOpen = useRef(false);
 
   const [open, setOpen] = useState(false);
+  // hasOpened latches true the first time the door opens. The Turnstile loader is
+  // a third-party anti-spam script; gating it on this keeps it out of the home
+  // page's hydration path entirely for the many visitors who scroll past the CTA
+  // without ever opening it, and only ever pulls it in once the form is actually
+  // in use. Latched (not just `open`) so a started challenge / minted token
+  // survives a close-and-reopen rather than re-initialising.
+  const [hasOpened, setHasOpened] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [errorReason, setErrorReason] = useState<string | null>(null);
   // canMorph: the View Transitions API is present and motion is welcome, so the
@@ -153,6 +160,9 @@ export function ContactDoor() {
     const el = doorRef.current;
     if (el) {
       setOpen(el.open);
+      if (el.open) {
+        setHasOpened(true);
+      }
     }
   };
 
@@ -228,117 +238,121 @@ export function ContactDoor() {
   };
 
   return (
-    <section className={styles.contact} id="contact">
-      <details
-        className={canMorph ? `${styles.door} ${styles.morph}` : styles.door}
-        onToggle={handleToggle}
-        ref={doorRef}
-      >
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: <summary> is a
-            native disclosure button (implicit role, built-in keyboard toggle);
-            onClick only upgrades that toggle into a view transition. */}
-        <summary
-          className={styles.summary}
-          onClick={handleSummaryClick}
-          ref={summaryRef}
+    <div className={styles.stage}>
+      <section className={styles.contact} id="contact">
+        <details
+          className={canMorph ? `${styles.door} ${styles.morph}` : styles.door}
+          onToggle={handleToggle}
+          ref={doorRef}
         >
-          <span aria-hidden="true" className={styles.summaryDot} />
-          <span className={styles.label}>{cta.button}</span>
-        </summary>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: <summary> is a
+              native disclosure button (implicit role, built-in keyboard toggle);
+              onClick only upgrades that toggle into a view transition. */}
+          <summary
+            className={styles.summary}
+            onClick={handleSummaryClick}
+            ref={summaryRef}
+          >
+            <span aria-hidden="true" className={styles.summaryDot} />
+            <span className={styles.label}>{cta.button}</span>
+          </summary>
 
-        <div className={styles.panel}>
-          {status === "sent" ? (
-            <p className={styles.confirmation} role="status">
-              {cta.confirmation}
-            </p>
-          ) : (
-            <form className={styles.form} onSubmit={handleSubmit}>
-              {/* Honeypot: off-screen, no human ever fills it; a bot that does
-                  gets a friendly 200 and nothing sent. */}
-              <div aria-hidden="true" className={styles.honeypot}>
-                <label htmlFor="contact-company">Company</label>
-                <input
-                  autoComplete="off"
-                  id="contact-company"
-                  name="company"
-                  tabIndex={-1}
-                />
-              </div>
-
-              <label
-                className={`${styles.field} ${styles.reveal}`}
-                style={revealOrder(0)}
-              >
-                <span className={styles.fieldLabel}>{cta.fields.name}</span>
-                <input
-                  autoComplete="name"
-                  className={styles.input}
-                  name="name"
-                  ref={firstFieldRef}
-                  required
-                  type="text"
-                />
-              </label>
-
-              <label
-                className={`${styles.field} ${styles.reveal}`}
-                style={revealOrder(1)}
-              >
-                <span className={styles.fieldLabel}>{cta.fields.email}</span>
-                <input
-                  autoComplete="email"
-                  className={styles.input}
-                  name="email"
-                  required
-                  type="email"
-                />
-              </label>
-
-              <label
-                className={`${styles.field} ${styles.reveal}`}
-                style={revealOrder(2)}
-              >
-                <span className={styles.fieldLabel}>{cta.fields.message}</span>
-                <textarea
-                  className={styles.textarea}
-                  name="message"
-                  required
-                  rows={4}
-                />
-              </label>
-
-              {TURNSTILE_SITE_KEY ? (
-                <>
-                  <Script async defer src={TURNSTILE_SCRIPT} />
-                  <div
-                    className="cf-turnstile"
-                    data-appearance="interaction-only"
-                    data-sitekey={TURNSTILE_SITE_KEY}
-                    data-theme="dark"
+          <div className={styles.panel}>
+            {status === "sent" ? (
+              <p className={styles.confirmation} role="status">
+                {cta.confirmation}
+              </p>
+            ) : (
+              <form className={styles.form} onSubmit={handleSubmit}>
+                {/* Honeypot: off-screen, no human ever fills it; a bot that does
+                    gets a friendly 200 and nothing sent. */}
+                <div aria-hidden="true" className={styles.honeypot}>
+                  <label htmlFor="contact-company">Company</label>
+                  <input
+                    autoComplete="off"
+                    id="contact-company"
+                    name="company"
+                    tabIndex={-1}
                   />
-                </>
-              ) : null}
+                </div>
 
-              <button
-                className={`${styles.send} ${styles.reveal}`}
-                disabled={status === "sending"}
-                style={revealOrder(3)}
-                type="submit"
-              >
-                {cta.send}
-              </button>
+                <label
+                  className={`${styles.field} ${styles.reveal}`}
+                  style={revealOrder(0)}
+                >
+                  <span className={styles.fieldLabel}>{cta.fields.name}</span>
+                  <input
+                    autoComplete="name"
+                    className={styles.input}
+                    name="name"
+                    ref={firstFieldRef}
+                    required
+                    type="text"
+                  />
+                </label>
 
-              {status === "error" ? (
-                <p className={styles.error} role="alert">
-                  {errorReason ?? "Something went wrong. Please try again."}
-                </p>
-              ) : null}
-            </form>
-          )}
-        </div>
-      </details>
+                <label
+                  className={`${styles.field} ${styles.reveal}`}
+                  style={revealOrder(1)}
+                >
+                  <span className={styles.fieldLabel}>{cta.fields.email}</span>
+                  <input
+                    autoComplete="email"
+                    className={styles.input}
+                    name="email"
+                    required
+                    type="email"
+                  />
+                </label>
 
-      <QuietRail />
-    </section>
+                <label
+                  className={`${styles.field} ${styles.reveal}`}
+                  style={revealOrder(2)}
+                >
+                  <span className={styles.fieldLabel}>
+                    {cta.fields.message}
+                  </span>
+                  <textarea
+                    className={styles.textarea}
+                    name="message"
+                    required
+                    rows={4}
+                  />
+                </label>
+
+                {TURNSTILE_SITE_KEY && hasOpened ? (
+                  <>
+                    <Script async defer src={TURNSTILE_SCRIPT} />
+                    <div
+                      className="cf-turnstile"
+                      data-appearance="interaction-only"
+                      data-sitekey={TURNSTILE_SITE_KEY}
+                      data-theme="dark"
+                    />
+                  </>
+                ) : null}
+
+                <button
+                  className={`${styles.send} ${styles.reveal}`}
+                  disabled={status === "sending"}
+                  style={revealOrder(3)}
+                  type="submit"
+                >
+                  {cta.send}
+                </button>
+
+                {status === "error" ? (
+                  <p className={styles.error} role="alert">
+                    {errorReason ?? "Something went wrong. Please try again."}
+                  </p>
+                ) : null}
+              </form>
+            )}
+          </div>
+        </details>
+
+        <QuietRail />
+      </section>
+    </div>
   );
 }

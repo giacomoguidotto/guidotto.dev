@@ -716,6 +716,15 @@ function MotionStage() {
     stage.addEventListener("focusout", onFocusOut);
     // The grid box (and so the scatter deltas) can shift after web fonts swap in or
     // any reflow; re-measure so the FLIP stays true.
+    //
+    // The observer watches only the grid, NOT the finale below. measure() reads the
+    // finale's [data-finale-landing] rect live, but caches it; when the finale's
+    // <LiveInstrument> lazy-mounts on scroll-into-view it can reflow that slot and
+    // leave the cached rect stale. That is harmless by construction: buildShowRig
+    // uses only the slot's scroll-stable left/width, and the morph resolves within
+    // the first viewport — long before the finale (and its lazy instrument) is
+    // reached. If that timing contract is ever broken (a longer morph, or eagerly
+    // mounting the scene), observe the finale here too so the set-aside re-aims.
     const observer = new ResizeObserver(remeasure);
     observer.observe(grid);
 
