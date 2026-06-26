@@ -36,6 +36,7 @@ import {
   TOUCH,
   type WebGLRenderer,
 } from "three";
+import styles from "./attractor.module.css";
 import { type FinaleController, snapshotFloat } from "./controller";
 import { type FinaleData, TUBE_SAMPLES } from "./finale-data";
 import { buildTubeIndex, lerpCenterline, writeTube } from "./tube";
@@ -460,6 +461,7 @@ export default function AttractorScene({
   return (
     <Canvas
       camera={{ position: [0, 4, 72], fov: 38, near: 0.1, far: 220 }}
+      className={styles.sceneCanvas}
       dpr={[1, 1.75]}
       // Pause rendering while the finale is off-screen (the perpetual comet/bloom
       // must not burn frames the visitor cannot see).

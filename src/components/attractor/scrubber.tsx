@@ -18,8 +18,8 @@ import styles from "./attractor.module.css";
 import type { FinaleController } from "./controller";
 
 // The slider's accessible name describes what IT does — scrub the training epoch.
-// (The visible interaction hint beside it carries the orbit affordance; orbit is
-// not this control's job.)
+// (The bar wears a pointer cursor as its whole affordance; the scene's grab cursor
+// carries orbit. Neither needs instruction copy.)
 const SCRUBBER_LABEL = "Scrub the training epoch";
 
 interface ScrubberProps {

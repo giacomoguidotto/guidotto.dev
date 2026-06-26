@@ -218,12 +218,7 @@ export function LiveInstrument() {
               parametersLabel={copy.hud.parameters}
               showpiece={data.showpiece}
             />
-            {mode === "full" && (
-              <>
-                <p className={styles.interaction}>{copy.interaction}</p>
-                <Scrubber controller={controller} />
-              </>
-            )}
+            {mode === "full" && <Scrubber controller={controller} />}
           </div>
         </>
       )}

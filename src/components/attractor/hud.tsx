@@ -2,17 +2,25 @@
 
 // Hud — the quiet mono readout over the instrument.
 //
-// It shows the solver settling: sigma / rho / beta as knobs that drift to their
-// recovered values (NO ground-truth target is ever drawn — the trajectory is the
-// payoff, the parameters are garnish) and the loss ticking down. Like the rest of
-// the page's reactivity, the 60fps values never flow through React: an rAF loop
-// reads the shared controller and writes straight to the DOM (textContent + a CSS
-// custom property for each knob), so the HUD costs no re-renders.
+// It shows the solver settling: sigma / rho / beta as knobs whose dots drift to
+// their recovered values (NO ground-truth target is ever drawn, and NO numbers —
+// the bare numerals read as distracting noise; the trajectory is the payoff, the
+// parameters are garnish). The loss is no longer a ticking numeral either: it is
+// a quiet line chart — a dimmed ground line with a soft shadow fading beneath it
+// (there is no negative loss, so the floor is drawn as a floor) and the real loss
+// curve descending toward that ground as training replays. No axes, no labels but
+// the word LOSS.
+//
+// Like the rest of the page's reactivity, the 60fps values never flow through
+// React: an rAF loop reads the shared controller and writes straight to the DOM
+// (each knob's CSS custom property, and the chart's reveal-clip width), so the HUD
+// costs no re-renders. The loss path itself is static geometry built once from the
+// real per-epoch numbers; only how much of it is revealed animates.
 //
 // In the static / reduced-motion tier there is no animation loop: the converged
-// snapshot's values are written once and held.
+// snapshot's knobs are written once and the whole loss curve is revealed and held.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { Showpiece } from "~/showpiece/lorenz-forward";
 import styles from "./attractor.module.css";
 import { type FinaleController, snapshotIndex } from "./controller";
@@ -26,20 +34,24 @@ const KNOB_RANGE = {
   beta: [0, 10],
 } as const;
 
+// The loss chart's user-space box (viewBox 0 0 100 100, stretched to fit). The
+// ground line sits near the bottom; the shadow fades from it to the floor; the
+// loss curve climbs from the ground (loss 0) up to TOP_Y (the run's worst loss).
+const GROUND_Y = 84;
+const TOP_Y = 12;
+
 interface KnobProps {
   readonly dotRef: React.RefObject<HTMLSpanElement | null>;
   readonly symbol: string;
-  readonly valueRef: React.RefObject<HTMLSpanElement | null>;
 }
 
-function Knob({ symbol, dotRef, valueRef }: KnobProps) {
+function Knob({ symbol, dotRef }: KnobProps) {
   return (
     <div className={styles.knob}>
       <span className={styles.knobSymbol}>{symbol}</span>
       <span className={styles.knobTrack}>
         <span className={styles.knobDot} ref={dotRef} />
       </span>
-      <span className={styles.knobValue} ref={valueRef} />
     </div>
   );
 }
@@ -53,6 +65,25 @@ function lossAt(showpiece: Showpiece, index: number): number {
     }
   }
   return showpiece.loss(showpiece.snapshotCount - 1) ?? 0;
+}
+
+/** Build the static loss polyline in the chart's 0..100 user space, from the real
+ *  per-epoch numbers. x is training progress (epoch order); y maps loss linearly
+ *  so 0 sits on the ground line and the run's worst loss reaches TOP_Y — at
+ *  convergence the curve meets the ground. (The path is honest: it includes the
+ *  real early bump before the descent, not an idealised slide.) */
+function buildLossPath(showpiece: Showpiece): string {
+  const n = showpiece.snapshotCount;
+  const losses = Array.from({ length: n }, (_, i) => lossAt(showpiece, i));
+  const max = Math.max(...losses) || 1;
+  const span = GROUND_Y - TOP_Y;
+  return losses
+    .map((loss, i) => {
+      const x = n === 1 ? 0 : (i / (n - 1)) * 100;
+      const y = GROUND_Y - (loss / max) * span;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
 }
 
 const norm = (value: number, [lo, hi]: readonly [number, number]): number =>
@@ -75,51 +106,59 @@ export function Hud({
   showpiece,
 }: HudProps) {
   const sigmaDot = useRef<HTMLSpanElement>(null);
-  const sigmaVal = useRef<HTMLSpanElement>(null);
   const rhoDot = useRef<HTMLSpanElement>(null);
-  const rhoVal = useRef<HTMLSpanElement>(null);
   const betaDot = useRef<HTMLSpanElement>(null);
-  const betaVal = useRef<HTMLSpanElement>(null);
-  const lossVal = useRef<HTMLSpanElement>(null);
+  // The rect that clips the loss path; its width (0..100) is how much of the
+  // descending curve has been revealed so far.
+  const reveal = useRef<SVGRectElement>(null);
+
+  const lossPath = useMemo(() => buildLossPath(showpiece), [showpiece]);
+  const ids = useId();
+  const clipId = `${ids}-loss-clip`;
+  const shadeId = `${ids}-loss-shade`;
 
   useEffect(() => {
-    const paint = (index: number) => {
+    const paintKnobs = (index: number) => {
       const { sigma, rho, beta } = showpiece.params(index);
       const set = (
         dot: HTMLSpanElement | null,
-        val: HTMLSpanElement | null,
         value: number,
         range: readonly [number, number]
       ) => {
         if (dot) {
           dot.style.setProperty("--knob", `${norm(value, range) * 100}%`);
         }
-        if (val) {
-          val.textContent = value.toFixed(2);
-        }
       };
-      set(sigmaDot.current, sigmaVal.current, sigma, KNOB_RANGE.sigma);
-      set(rhoDot.current, rhoVal.current, rho, KNOB_RANGE.rho);
-      set(betaDot.current, betaVal.current, beta, KNOB_RANGE.beta);
-      if (lossVal.current) {
-        lossVal.current.textContent = lossAt(showpiece, index).toFixed(4);
-      }
+      set(sigmaDot.current, sigma, KNOB_RANGE.sigma);
+      set(rhoDot.current, rho, KNOB_RANGE.rho);
+      set(betaDot.current, beta, KNOB_RANGE.beta);
+    };
+    const revealTo = (progress: number) => {
+      reveal.current?.setAttribute("width", String(progress * 100));
     };
 
     if (!live) {
-      paint(showpiece.snapshotCount - 1);
+      paintKnobs(showpiece.snapshotCount - 1);
+      revealTo(1);
       return;
     }
 
     let raf = 0;
-    let last = -1;
+    let lastIndex = -1;
+    let lastProgress = -1;
     const tick = () => {
+      // The loss curve reveals continuously (it traces the descent smoothly), so
+      // it follows raw progress every frame it moves.
+      const progress = controller.progress;
+      if (progress !== lastProgress) {
+        lastProgress = progress;
+        revealTo(progress);
+      }
+      // The knobs only step on a snapshot boundary; skip the DOM otherwise.
       const index = snapshotIndex(controller);
-      // The HUD only changes on a snapshot boundary; skip the DOM otherwise (the
-      // idle converged steady-state then writes nothing every frame).
-      if (index !== last) {
-        last = index;
-        paint(index);
+      if (index !== lastIndex) {
+        lastIndex = index;
+        paintKnobs(index);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -131,13 +170,52 @@ export function Hud({
     <div className={styles.hud}>
       <div className={styles.hudParams}>
         <span className={styles.hudLabel}>{parametersLabel}</span>
-        <Knob dotRef={sigmaDot} symbol="σ" valueRef={sigmaVal} />
-        <Knob dotRef={rhoDot} symbol="ρ" valueRef={rhoVal} />
-        <Knob dotRef={betaDot} symbol="β" valueRef={betaVal} />
+        <Knob dotRef={sigmaDot} symbol="σ" />
+        <Knob dotRef={rhoDot} symbol="ρ" />
+        <Knob dotRef={betaDot} symbol="β" />
       </div>
       <div className={styles.hudLoss}>
         <span className={styles.hudLabel}>{lossLabel}</span>
-        <span className={styles.lossValue} ref={lossVal} />
+        <div className={styles.lossChartBox}>
+          <svg
+            aria-hidden="true"
+            className={styles.lossChart}
+            preserveAspectRatio="none"
+            viewBox="0 0 100 100"
+          >
+            <defs>
+              <linearGradient id={shadeId} x1="0" x2="0" y1="0" y2="1">
+                <stop className={styles.lossShadeTop} offset="0%" />
+                <stop className={styles.lossShadeBottom} offset="100%" />
+              </linearGradient>
+              <clipPath id={clipId}>
+                <rect height="100" ref={reveal} width="0" x="0" y="0" />
+              </clipPath>
+            </defs>
+            {/* the soft shadow under the ground line: there is no negative loss,
+                so the floor is suggested as a fading floor, not an open axis. */}
+            <rect
+              className={styles.lossShadow}
+              fill={`url(#${shadeId})`}
+              height={100 - GROUND_Y}
+              width="100"
+              x="0"
+              y={GROUND_Y}
+            />
+            <line
+              className={styles.lossGround}
+              x1="0"
+              x2="100"
+              y1={GROUND_Y}
+              y2={GROUND_Y}
+            />
+            <path
+              className={styles.lossLine}
+              clipPath={`url(#${clipId})`}
+              d={lossPath}
+            />
+          </svg>
+        </div>
       </div>
     </div>
   );

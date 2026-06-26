@@ -7,7 +7,7 @@
    content.showpiece) — it never edits them.
 
    The live WebGL scene mounts into `.canvas` (inside `LiveInstrument`); the DOM
-   overlays — the quiet mono HUD, the epoch scrubber, the interaction hint — float
+   overlays — the quiet mono HUD and the epoch scrubber — float
    in `.console` over it. The parked AnyPINN vessel and the badge are static chrome
    layered above the instrument. */
 
@@ -98,6 +98,17 @@
   z-index: 0;
 }
 
+/* the live R3F canvas: an open hand over the genuinely-3D scene IS the orbit
+   instruction (no copy needed), closing to a grabbing fist while a drag spins it.
+   Scoped to the live scene only — the static butterfly tier cannot be orbited. */
+.sceneCanvas {
+  cursor: grab;
+}
+
+.sceneCanvas:active {
+  cursor: grabbing;
+}
+
 .staticCanvas {
   display: block;
   width: 100%;
@@ -135,8 +146,8 @@
   }
 }
 
-/* the bottom control strip: HUD row, interaction hint, scrubber. Non-interactive
-   so a drag over it still orbits the scene; only the scrubber re-enables input. */
+/* the bottom control strip: the HUD row and the scrubber. Non-interactive so a
+   drag over it still orbits the scene; only the scrubber re-enables input. */
 .console {
   position: absolute;
   inset: auto 0 0 0;
@@ -153,7 +164,9 @@
 .hud {
   display: flex;
   gap: 1rem;
-  align-items: flex-end;
+  /* stretch so the loss column matches the parameters column's height — their
+     two titles then sit on the same top line (the alignment the finale wants). */
+  align-items: stretch;
   justify-content: space-between;
 }
 
@@ -166,7 +179,7 @@
 .hudLoss {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.34rem;
   align-items: flex-end;
   text-align: right;
 }
@@ -179,8 +192,8 @@
   letter-spacing: 0.24em;
 }
 
-/* a settling knob: symbol, a track with a dot that drifts to the recovered value
-   (NO ground-truth target marker is ever drawn), and the live value. */
+/* a settling knob: symbol and a track with a dot that drifts to the recovered
+   value (NO ground-truth target marker, and NO numeral — the drift IS the read).*/
 .knob {
   display: flex;
   gap: 0.55rem;
@@ -215,34 +228,60 @@
   transition: left 0.22s ease-out;
 }
 
-.knobValue {
-  min-width: 3.4ch;
-  font-variant-numeric: tabular-nums;
-  color: color-mix(in oklch, var(--ivory) 84%, transparent);
-  text-align: right;
+/* the loss as a quiet line chart (no axes, no numerals): a dimmed ground line, a
+   soft shadow fading beneath it (no negative loss — the floor is a floor), and the
+   real loss curve descending toward the ground as training replays. The chart box
+   fills the column BESIDE the three knobs; the svg is positioned out of flow so it
+   contributes no intrinsic height, letting the three sliders set the height the
+   chart matches. */
+.lossChartBox {
+  position: relative;
+  flex: 1;
+  width: clamp(5.5rem, 18vw, 9rem);
+  min-height: 0;
 }
 
-.lossValue {
-  font-family: var(--font-mono), monospace;
-  font-size: 0.92rem;
-  font-variant-numeric: tabular-nums;
-  color: color-mix(in oklch, var(--accent) 60%, var(--ivory));
-  letter-spacing: 0.02em;
+.lossChart {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* ---------- the interaction hint + the epoch scrubber / progress bar ---------- */
-
-.interaction {
-  margin: 0;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.62rem;
-  color: color-mix(in oklch, var(--ivory) 46%, transparent);
-  text-align: center;
-  letter-spacing: 0.12em;
+/* the dimmed baseline: where loss 0 lives, and the line the curve settles onto. */
+.lossGround {
+  stroke: color-mix(in oklch, var(--ivory) 24%, transparent);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
 }
+
+.lossShadeTop {
+  stop-color: color-mix(in oklch, var(--ivory) 10%, transparent);
+}
+
+.lossShadeBottom {
+  stop-color: transparent;
+}
+
+/* the descending loss line itself — the one earned, accented mark in the chart. */
+.lossLine {
+  fill: none;
+  stroke: color-mix(in oklch, var(--accent) 70%, var(--ivory));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(
+    0 0 3px color-mix(in oklch, var(--accent) 45%, transparent)
+  );
+}
+
+/* ---------- the epoch scrubber / progress bar ---------- */
 
 /* the scrubber IS the epoch progress bar (no counter label): its fill tracks the
-   replay, and dragging it scrubs training. */
+   replay, and dragging it scrubs training. No instruction copy rides beside it —
+   the pointer cursor over the bar is the whole affordance. */
 .scrubber {
   position: relative;
   display: flex;
@@ -392,14 +431,8 @@
 /* ---------- narrow: let the HUD and controls breathe ---------- */
 
 @media (max-width: 40rem) {
-  .interaction {
-    font-size: 0.56rem;
-  }
-
-  .knobTrack {
-    display: none;
-  }
-
+  /* the knob track is the only read now the numerals are gone, so keep it (it
+     was hidden when a numeral sat beside it). */
   .landing {
     width: clamp(4rem, 18vw, 5rem);
   }
