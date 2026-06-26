@@ -13,8 +13,9 @@
    the fields cascade in. Everything collapses to an instant show under
    prefers-reduced-motion at the foot of this file. */
 
-/* the stage used by the standalone preview route (mirrors the hero field, but
-   grows with content instead of clipping to one viewport) */
+/* the cool stage that carries the CTA close (mirrors the hero field, but grows
+   with content instead of clipping to one viewport). It backs the contact
+   section at the foot of the composed home page. */
 .stage {
   display: grid;
   place-items: center;

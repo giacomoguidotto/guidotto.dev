@@ -14,8 +14,9 @@
    view (the one earned micro-motion), wired in Signature and collapsed to the
    finished mark under prefers-reduced-motion. */
 
-/* the cool stage used by the standalone preview route (mirrors the hero field,
-   but grows with content instead of clipping to one viewport) */
+/* the cool stage that carries the lower-page close (mirrors the hero field, but
+   grows with content instead of clipping to one viewport). It backs the
+   denouement section on the composed home page. */
 .stage {
   position: relative;
   z-index: 0;

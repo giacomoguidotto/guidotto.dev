@@ -16,8 +16,9 @@
    single-root --live-accent the ShowcaseRoot writes follows the same one active
    card (one property, one lead). :focus-visible here is only the focus ring. */
 
-/* the stage used by the standalone preview route (mirrors the hero field, but
-   grows with content instead of clipping to one viewport) */
+/* the cool stage that carries the proof grid (mirrors the hero field, but grows
+   with content instead of clipping to one viewport). It backs the Stage's plain
+   sectioned fallback (Hero then ProofGrid) on the composed home page. */
 .stage {
   position: relative;
   z-index: 0;
