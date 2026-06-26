@@ -83,4 +83,41 @@ describe("writeTube", () => {
       }
     });
   }
+
+  test("transports the frame through vertical tangents without flipping (no bowtie)", () => {
+    // A planar arc in the X–Y plane whose tangent sweeps up through vertical
+    // (the up-parallel band). A planar curve has no torsion, so a rotation-
+    // minimizing frame must hold its out-of-plane normal CONSTANT across every
+    // sample. The old fixed-up frame snapped its reference vector as the tangent
+    // crossed near-vertical, flipping the ring's normal sign — the self-crossing
+    // "bowtie" that additive bloom flared into a bright star.
+    const samples = 64;
+    const line = new Float32Array(samples * 3);
+    for (let i = 0; i < samples; i++) {
+      const a = -0.7 + (1.4 * i) / (samples - 1); // sweep through a = 0 (vertical)
+      line[i * 3] = 10 * Math.cos(a);
+      line[i * 3 + 1] = 10 * Math.sin(a);
+      line[i * 3 + 2] = 0;
+    }
+    const positions = new Float32Array(samples * radial * 3);
+    writeTube(positions, line, samples, radial, radius);
+
+    // The j=0 ring vertex sits at center + radius * normal, so it recovers the
+    // frame normal directly. For this planar arc it must stay parallel to +/-Z.
+    let signZ = 0;
+    for (let i = 0; i < samples; i++) {
+      const v = i * radial * 3; // j = 0
+      const nx = (positions[v] - line[i * 3]) / radius;
+      const ny = (positions[v + 1] - line[i * 3 + 1]) / radius;
+      const nz = (positions[v + 2] - line[i * 3 + 2]) / radius;
+      expect(Math.abs(nz)).toBeCloseTo(1, 5); // out-of-plane, never twists in
+      expect(nx).toBeCloseTo(0, 5);
+      expect(ny).toBeCloseTo(0, 5);
+      const s = Math.sign(nz);
+      if (signZ === 0) {
+        signZ = s;
+      }
+      expect(s).toBe(signZ); // never flips sign — no bowtie
+    }
+  });
 });

@@ -1,5 +1,5 @@
-// tube — a parallel-ish-transport tube swept around a polyline centerline,
-// written in place into a fixed-size position buffer every frame.
+// tube — a rotation-minimizing tube swept around a polyline centerline, written
+// in place into a fixed-size position buffer every frame.
 //
 // Why not THREE.TubeGeometry: that rebuilds (and must dispose) a geometry per
 // frame as the centerline morphs. Instead we own one BufferGeometry of a fixed
@@ -8,9 +8,15 @@
 // so three's depth fog dims the far lobe for free and bloom thickens it into a
 // glowing strand. The material is unlit/additive, so we never need normals.
 //
-// The cross-section frame uses a fixed up vector with a fallback when the
-// tangent runs parallel to it; a thin tube under bloom hides the slight twist
-// that a non-transported frame can introduce, which keeps this allocation-free.
+// The cross-section frame is PARALLEL-TRANSPORTED along the curve (the double
+// reflection method, Wang et al. 2008): seed one frame at sample 0, then carry
+// it forward sample to sample. A per-sample fixed-up frame would flip whenever
+// the tangent crossed near-parallel to up — that discontinuity pinches the ring
+// strip into a self-crossing bowtie that additive bloom flares into a bright
+// star. The Lorenz lobes are near-vertical spirals, so a fixed-up frame flips
+// constantly; transport removes the flip outright, for the morph and the
+// converged final state alike. The seed (sample 0, with no prior frame to flip
+// against) still uses the fixed-up trick.
 
 const UP_X = 0;
 const UP_Y = 1;
@@ -19,6 +25,9 @@ const FALLBACK_X = 1;
 const FALLBACK_Y = 0;
 const FALLBACK_Z = 0;
 const PARALLEL_EPS = 0.92;
+// Below this squared length a reflection step is a no-op (coincident samples or
+// an unchanged tangent), so we skip it and carry the frame through unchanged.
+const DEGENERATE_EPS = 1e-12;
 
 /** Triangle index for a `samples` x `radial` tube. Built once, reused forever. */
 export function buildTubeIndex(samples: number, radial: number): Uint16Array {
@@ -75,6 +84,28 @@ function tangentAt(
   out[2] = tz;
 }
 
+/** Seed a cross-section normal at sample 0 from the fixed up vector (swapped to
+ *  the fallback when the tangent runs near-parallel to it), written into `out`.
+ *  Only sample 0 needs this — every later frame is transported, never seeded. */
+function seedNormal(
+  tx: number,
+  ty: number,
+  tz: number,
+  out: Float32Array
+): void {
+  const parallel = Math.abs(tx * UP_X + ty * UP_Y + tz * UP_Z) > PARALLEL_EPS;
+  const ux = parallel ? FALLBACK_X : UP_X;
+  const uy = parallel ? FALLBACK_Y : UP_Y;
+  const uz = parallel ? FALLBACK_Z : UP_Z;
+  const nx = uy * tz - uz * ty;
+  const ny = uz * tx - ux * tz;
+  const nz = ux * ty - uy * tx;
+  const nl = Math.hypot(nx, ny, nz) || 1;
+  out[0] = nx / nl;
+  out[1] = ny / nl;
+  out[2] = nz / nl;
+}
+
 /** Sweep a `radius` tube of `radial` sides around `line` into `positions`. */
 export function writeTube(
   positions: Float32Array,
@@ -84,23 +115,84 @@ export function writeTube(
   radius: number
 ): void {
   const tan = new Float32Array(3);
-  for (let i = 0; i < samples; i++) {
-    tangentAt(line, i, samples, tan);
-    const [tx, ty, tz] = tan;
+  // The transported frame: previous point, previous tangent, current normal.
+  let px = line[0];
+  let py = line[1];
+  let pz = line[2];
+  tangentAt(line, 0, samples, tan);
+  let tx = tan[0];
+  let ty = tan[1];
+  let tz = tan[2];
+  const seed = new Float32Array(3);
+  seedNormal(tx, ty, tz, seed);
+  let nx = seed[0];
+  let ny = seed[1];
+  let nz = seed[2];
 
-    // up x tangent -> normal; swap up if they are near-parallel.
-    const parallel = Math.abs(tx * UP_X + ty * UP_Y + tz * UP_Z) > PARALLEL_EPS;
-    const ux = parallel ? FALLBACK_X : UP_X;
-    const uy = parallel ? FALLBACK_Y : UP_Y;
-    const uz = parallel ? FALLBACK_Z : UP_Z;
-    let nx = uy * tz - uz * ty;
-    let ny = uz * tx - ux * tz;
-    let nz = ux * ty - uy * tx;
-    const nl = Math.hypot(nx, ny, nz) || 1;
-    nx /= nl;
-    ny /= nl;
-    nz /= nl;
-    // binormal = tangent x normal (already unit, both orthonormal).
+  for (let i = 0; i < samples; i++) {
+    if (i > 0) {
+      const cx0 = line[i * 3];
+      const cy0 = line[i * 3 + 1];
+      const cz0 = line[i * 3 + 2];
+      tangentAt(line, i, samples, tan);
+      const t1x = tan[0];
+      const t1y = tan[1];
+      const t1z = tan[2];
+
+      // Double reflection: reflect the frame across the plane bisecting the
+      // segment, then onto the new tangent — a rotation-minimizing transport.
+      const v1x = cx0 - px;
+      const v1y = cy0 - py;
+      const v1z = cz0 - pz;
+      const c1 = v1x * v1x + v1y * v1y + v1z * v1z;
+      let rLx = nx;
+      let rLy = ny;
+      let rLz = nz;
+      let tLx = tx;
+      let tLy = ty;
+      let tLz = tz;
+      if (c1 > DEGENERATE_EPS) {
+        const kr = (2 / c1) * (v1x * nx + v1y * ny + v1z * nz);
+        rLx = nx - kr * v1x;
+        rLy = ny - kr * v1y;
+        rLz = nz - kr * v1z;
+        const kt = (2 / c1) * (v1x * tx + v1y * ty + v1z * tz);
+        tLx = tx - kt * v1x;
+        tLy = ty - kt * v1y;
+        tLz = tz - kt * v1z;
+      }
+      const v2x = t1x - tLx;
+      const v2y = t1y - tLy;
+      const v2z = t1z - tLz;
+      const c2 = v2x * v2x + v2y * v2y + v2z * v2z;
+      let r1x = rLx;
+      let r1y = rLy;
+      let r1z = rLz;
+      if (c2 > DEGENERATE_EPS) {
+        const k = (2 / c2) * (v2x * rLx + v2y * rLy + v2z * rLz);
+        r1x = rLx - k * v2x;
+        r1y = rLy - k * v2y;
+        r1z = rLz - k * v2z;
+      }
+      // Re-orthonormalise against the new tangent and adopt as the frame, so the
+      // ring stays exactly perpendicular (and exactly `radius` off the line).
+      const dot = r1x * t1x + r1y * t1y + r1z * t1z;
+      r1x -= dot * t1x;
+      r1y -= dot * t1y;
+      r1z -= dot * t1z;
+      const rl = Math.hypot(r1x, r1y, r1z) || 1;
+      nx = r1x / rl;
+      ny = r1y / rl;
+      nz = r1z / rl;
+      tx = t1x;
+      ty = t1y;
+      tz = t1z;
+      px = cx0;
+      py = cy0;
+      pz = cz0;
+    }
+
+    // binormal = tangent x normal (both unit and orthogonal).
     const bx = ty * nz - tz * ny;
     const by = tz * nx - tx * nz;
     const bz = tx * ny - ty * nx;
