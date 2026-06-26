@@ -381,10 +381,10 @@ problem*: the network is handed **noisy scatter** and recovers the hidden trajec
 **The spectacle (`@react-three/fiber` + drei — the single WebGL spend):**
 
 - Noisy **observations rain in** as faint cool-white motes in 3D — the data the net sees.
-- The **learned field** is a glowing green (`#22C55E`) tube threading the motes;
-  at the initial snapshot it's a tangled stub, and as epochs replay it **uncurls and
-  snaps into the butterfly**, additive bloom peaking at convergence (the one loud
-  answer per the reactivity law), then easing back.
+- The **learned field** is a glowing tube in AnyPINN's own accent (periwinkle
+  `#9B99F0`) threading the motes; at the initial snapshot it's a tangled stub, and as
+  epochs replay it **uncurls and snaps into the butterfly**, additive bloom peaking at
+  convergence (the one loud answer per the reactivity law), then easing back.
 - After convergence a **comet head traces the attractor forever** (fading additive
   trail) — the perpetual, hypnotic beauty that holds attention; this is the
   lower-energy denouement resting state.
@@ -639,9 +639,11 @@ Sourced from each project's real material where one exists, **assigned** where t
 project is deliberately monochrome — assignment is honest (we don't fabricate a brand
 story; we pick a distinguishing color):
 
-- **AnyPINN** — periwinkle `#9B99F0` (the blue of its logo's wave). The showpiece
-  attractor keeps its own green (`#22C55E`); the project accent is the logo's blue, not
-  the attractor's green.
+- **AnyPINN** — periwinkle `#9B99F0` (the blue of its logo's wave). This single accent
+  carries the whole showpiece, instrument included: the learned-field tube and comet
+  glow in it too, so the centerpiece reads as one earned colour (one project blooms at a
+  time) rather than a separate instrument hue. (Earlier drafts gave the attractor its own
+  green `#22C55E`; retired so AnyPINN holds one accent end to end.)
 - **Tempo** — copper `#C06730` ("Warm Analog", from the app).
 - **Scry** — mint `#5DE4C7` (from the app).
 - **Orray** — white `#E7E6E5` — **sourced** from its logo's white ray. Orray's palette is

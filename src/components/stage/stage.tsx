@@ -26,10 +26,11 @@
 // only), clears its depth blur soft -> sharp, and assembles its caption in:
 //   - the four peers target their own grid cell (source = vitrine, target = grid),
 //     and resolve into navigable proof cards;
-//   - the showpiece targets a point just BELOW the grid, off-screen (its DOM home
-//     IS the contact sheet, so source = home and it simply slides off as a
-//     curatorial set-aside). Today that target is "below the grid"; it is the seam
-//     where the finale (#9) will retarget it onto the live attractor instead.
+//   - the showpiece targets the curatorial set-aside, off-screen below the pin (its
+//     DOM home IS the contact sheet, so source = home and it simply slides off). When
+//     the finale (#9) is present below the grid, that set-aside is AIMED at the
+//     finale's landing slot — it shrinks and drifts to the slot before sliding off,
+//     and the finale parks the AnyPINN vessel there, so all five vessels end in place.
 //
 // AT REST IT IS THE HERO, 1:1. A peer's grid cell is larger than its vitrine
 // scatter slot, so at rest the tile is FLIP-scaled down — and `filter: blur()` and
@@ -268,14 +269,23 @@ const buildPeerRig = (
 
 // Size + place the showpiece at its vitrine point at natural size (its DOM home IS
 // the contact sheet), so SOURCE is identity and blur/corner never scale. It stays in
-// the viewport-fixed pin (it never joins the grid). Its TARGET is straight down, just
-// below the pinned viewport — the curatorial set-aside, and the seam the finale will
-// later retarget onto the live attractor.
+// the viewport-fixed pin (it never joins the grid) — so the morph is jitter-free.
+//
+// Its TARGET is the curatorial set-aside: it slides off below the pinned viewport as
+// the grid resolves. When the finale (#9) is present below the grid, the set-aside is
+// AIMED at the finale's landing slot — it shrinks to the slot's size and drifts to the
+// slot's horizontal centre before sliding off, so the departing vessel reads as
+// heading to its resting place. The finale parks the AnyPINN vessel at that slot, so
+// once the handoff is over all five vessels are in place (four in the grid, this one
+// small at the top-left of the attractor). With no finale present it simply slides
+// straight down at natural size — the standalone set-aside (the finale must not depend
+// on the loop). `landing` is the finale slot's viewport rect, or null when absent.
 const buildShowRig = (
   el: HTMLElement,
   pinRect: DOMRect,
   rem: number,
-  vw: number
+  vw: number,
+  landing: DOMRect | null
 ): Rig | null => {
   const place = placementFor(el);
   const poster = child(el, "[data-poster]");
@@ -291,9 +301,18 @@ const buildShowRig = (
   el.style.left = `${(place.x * pinRect.width - vW / 2).toFixed(2)}px`;
   el.style.top = `${(place.y * pinRect.height - vW / 2).toFixed(2)}px`;
   const home = anchorPoster(el, poster);
-  // Straight down past the pin's bottom edge (a full height beyond), so it parks
-  // off-screen as the contact sheet resolves — read as a deliberate set-aside.
-  const tgtCy = pinRect.bottom + vW;
+  // Default (no finale): straight down past the pin's bottom edge, at natural size.
+  // With a finale present: shrink to the landing slot and aim at its horizontal
+  // centre, then slide off below the pin toward it. The slot's width + x are
+  // scroll-independent, so this stays robust whatever scroll measure() runs at; the
+  // set-aside still lives in the viewport-fixed pin, so the morph stays jitter-free.
+  // Guard the ratio: a not-yet-laid-out slot (zero width) or a degenerate home must
+  // fall back to the natural-size set-aside, never a divide-by-zero scale (Infinity)
+  // or a collapse to nothing (0).
+  const aimed = landing !== null && landing.width > 0 && home.w > 0;
+  const tgtScale = aimed ? landing.width / home.w : 1;
+  const tgtCx = aimed ? landing.left + landing.width / 2 : home.cx;
+  const tgtCy = pinRect.bottom + vW * tgtScale;
   return {
     caption: null,
     depthBlur: DEPTH_BLUR[place.depth],
@@ -306,9 +325,9 @@ const buildShowRig = (
     srcDy: 0,
     srcScale: 1,
     tag: child(el, "[data-tag]"),
-    tgtDx: 0,
+    tgtDx: tgtCx - home.cx,
     tgtDy: tgtCy - home.cy,
-    tgtScale: 1,
+    tgtScale,
   };
 };
 
@@ -525,8 +544,18 @@ function MotionStage() {
           rigByEl.set(el, rig);
         }
       }
+      // The finale's landing slot, if it is composed below the grid: the showpiece
+      // set-aside is aimed at it (shrink + drift to its centre) so the AnyPINN vessel
+      // reads as heading to where the finale parks it. Its width + x are scroll-stable,
+      // so reading the live rect is robust to whatever scroll measure() runs at.
+      const landingEl = document.querySelector<HTMLElement>(
+        "[data-finale-landing]"
+      );
+      const landing = landingEl?.getBoundingClientRect() ?? null;
       const showEl = vitrine.querySelector<HTMLElement>("a[data-key]");
-      const showRig = showEl ? buildShowRig(showEl, pinRect, rem, vw) : null;
+      const showRig = showEl
+        ? buildShowRig(showEl, pinRect, rem, vw, landing)
+        : null;
       if (showRig) {
         rigs.push(showRig);
         rigByEl.set(showRig.el, showRig);
@@ -725,7 +754,8 @@ function MotionStage() {
         <div className={styles.grain} ref={grainRef} />
 
         {/* the showpiece tile — its DOM home is the contact sheet, never the grid;
-            it sets itself aside toward a point just below the viewport */}
+            it sets itself aside off-screen, aimed at the finale's landing slot when
+            the attractor is present below the grid (else straight down) */}
         <div className={styles.vitrine} ref={vitrineRef}>
           <ProjectTile model={SHOWPIECE_MODEL} />
         </div>

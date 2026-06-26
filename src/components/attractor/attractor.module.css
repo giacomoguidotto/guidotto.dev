@@ -1,0 +1,473 @@
+/* Attractor — the showpiece finale's surface (issue #9).
+
+   Co-located module CSS, kept OUT of globals.css like the other section slices so
+   this slice owns its own surface and never merge-conflicts with the parallel
+   ones. It only READS the global design tokens (the cool --stage-* field, the warm
+   --ivory, the glass tokens, and the earned --accent the section sets from
+   content.showpiece) — it never edits them.
+
+   The live WebGL scene mounts into `.canvas` (inside `LiveInstrument`); the DOM
+   overlays — the quiet mono HUD and the epoch scrubber — float
+   in `.console` over it. The parked AnyPINN vessel and the badge are static chrome
+   layered above the instrument. */
+
+.finale {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 5vw, 3.25rem);
+  width: 100%;
+  min-height: 100svh;
+  padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.4rem, 5vw, 3rem);
+}
+
+/* ---------- intro (the eyebrow + the Fraunces line) ---------- */
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  width: min(100%, 60rem);
+  margin: 0 auto;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.62rem, 1vw, 0.74rem);
+  color: color-mix(in oklch, var(--accent) 34%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  opacity: 0.82;
+}
+
+.line {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 40,
+    "WONK" 0;
+  font-weight: 360;
+  line-height: 1.1;
+  color: var(--ivory);
+}
+
+/* ---------- the instrument (the live scene's generous stage) ---------- */
+
+.instrument {
+  position: relative;
+  width: min(100%, 60rem);
+  /* a tall, near-square field for the genuinely-3D object (drag-to-orbit) */
+  aspect-ratio: 16 / 11;
+  margin: 0 auto;
+  overflow: hidden;
+  /* the subtle spotlight: a CSS radial vignette pooling the instrument out of the
+     cool-dark field, carrying the earned accent — not a real light. */
+  background:
+    radial-gradient(
+      120% 90% at 50% 40%,
+      color-mix(in oklch, var(--accent) 12%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      140% 120% at 50% 36%,
+      var(--stage-2) 0%,
+      var(--stage-3) 54%,
+      var(--stage-deep) 100%
+    );
+  border: 1px solid color-mix(in oklch, var(--ivory) 9%, transparent);
+  border-radius: 1.6rem;
+  box-shadow: 0 40px 90px -40px oklch(0 0 0 / 0.9);
+}
+
+/* ---------- LiveInstrument: the canvas layer + the console overlays ---------- */
+
+.live {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* the live R3F canvas: an open hand over the genuinely-3D scene IS the orbit
+   instruction (no copy needed), closing to a grabbing fist while a drag spins it.
+   Scoped to the live scene only — the static butterfly tier cannot be orbited. */
+.sceneCanvas {
+  cursor: grab;
+}
+
+.sceneCanvas:active {
+  cursor: grabbing;
+}
+
+.staticCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* the baked still floor (reduced motion / failed load): the committed converged
+   butterfly as a contained background, layered over the instrument's spotlight
+   like the live canvas, fetching nothing but the small SVG. */
+.poster {
+  position: absolute;
+  inset: 0;
+  background: url("/showpiece/lorenz/poster.svg") center / contain no-repeat;
+}
+
+/* a quiet breathing wash while the asset loads + trajectories precompute. */
+.loading {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    60% 50% at 50% 46%,
+    color-mix(in oklch, var(--accent) 14%, transparent) 0%,
+    transparent 70%
+  );
+  animation: finale-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes finale-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* the bottom control strip: the HUD row and the scrubber. Non-interactive so a
+   drag over it still orbits the scene; only the scrubber re-enables input. */
+.console {
+  /* the staged entrance's drift distance: each element rises this far as it fades
+     in (the scene's rAF writes a per-element `--enter`, 0 -> 1; the elements below
+     read it for both opacity and the lift). Kept small — a subtle settle, not a
+     slide. */
+  --console-rise: 0.5rem;
+
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.55rem, 1.6vw, 0.95rem);
+  padding: clamp(1rem, 2.4vw, 1.7rem);
+  pointer-events: none;
+}
+
+/* ---------- HUD (quiet mono readout) ---------- */
+
+.hud {
+  display: flex;
+  gap: 1rem;
+  /* stretch so the loss column matches the parameters column's height — their
+     two titles then sit on the same top line (the alignment the finale wants). */
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+/* the live tier's HUD enters as the SECOND beat of the console's staged fade-in
+   (the progress bar leads): it starts hidden and lifted here, and the scene's rAF
+   raises `--enter` (0 -> 1) off `gaugeReveal` to fade + settle it into place. The
+   static / reduced tier never gets this class, so the readout shows at rest at
+   once. */
+.entering {
+  opacity: var(--enter, 0);
+  transform: translateY(calc((1 - var(--enter, 0)) * var(--console-rise)));
+}
+
+.hudParams {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hudLoss {
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.hudLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  color: color-mix(in oklch, var(--ivory) 46%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+}
+
+/* a settling knob: symbol and a track with a dot that drifts to the recovered
+   value (NO ground-truth target marker, and NO numeral — the drift IS the read).*/
+.knob {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.64rem;
+  color: color-mix(in oklch, var(--ivory) 72%, transparent);
+}
+
+.knobSymbol {
+  width: 1.1em;
+  color: color-mix(in oklch, var(--accent) 70%, var(--ivory));
+}
+
+.knobTrack {
+  position: relative;
+  width: clamp(3.4rem, 10vw, 5.4rem);
+  height: 1px;
+  background: color-mix(in oklch, var(--ivory) 18%, transparent);
+}
+
+.knobDot {
+  position: absolute;
+  top: 50%;
+  left: var(--knob, 50%);
+  width: 6px;
+  height: 6px;
+  background: color-mix(in oklch, var(--accent) 80%, var(--ivory));
+  border-radius: 50%;
+  box-shadow: 0 0 8px color-mix(in oklch, var(--accent) 70%, transparent);
+  translate: -50% -50%;
+  transition: left 0.22s ease-out;
+}
+
+/* the loss as a quiet line chart (no axes, no numerals): a dimmed ground line, a
+   soft shadow fading beneath it (no negative loss — the floor is a floor), and the
+   real loss curve descending toward the ground as training replays. The chart box
+   fills the column BESIDE the three knobs; the svg is positioned out of flow so it
+   contributes no intrinsic height, letting the three sliders set the height the
+   chart matches. */
+.lossChartBox {
+  position: relative;
+  flex: 1;
+  width: clamp(5.5rem, 18vw, 9rem);
+  min-height: 0;
+}
+
+.lossChart {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* the dimmed baseline: where loss 0 lives, and the line the curve settles onto. */
+.lossGround {
+  stroke: color-mix(in oklch, var(--ivory) 24%, transparent);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.lossShadeTop {
+  stop-color: color-mix(in oklch, var(--ivory) 10%, transparent);
+}
+
+.lossShadeBottom {
+  stop-color: transparent;
+}
+
+/* the descending loss line itself — the one earned, accented mark in the chart. */
+.lossLine {
+  fill: none;
+  stroke: color-mix(in oklch, var(--accent) 70%, var(--ivory));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(
+    0 0 3px color-mix(in oklch, var(--accent) 45%, transparent)
+  );
+}
+
+/* ---------- the epoch scrubber / progress bar ---------- */
+
+/* the scrubber IS the epoch progress bar (no counter label): its fill tracks the
+   replay, and dragging it scrubs training. No instruction copy rides beside it —
+   the pointer cursor over the bar is the whole affordance. */
+.scrubber {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 1.1rem;
+  pointer-events: auto;
+  /* the progress bar LEADS the console's staged entrance: it starts hidden and
+     lifted, and the scene's rAF raises `--enter` (0 -> 1) off `controlReveal` to
+     fade + settle it in (and gates pointer input until it is mostly present). It
+     only ever renders in the live tier, so it always plays this fade. */
+  opacity: var(--enter, 0);
+  transform: translateY(calc((1 - var(--enter, 0)) * var(--console-rise)));
+}
+
+.scrubberTrack {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--ivory) 14%, transparent);
+  border-radius: 999px;
+}
+
+.scrubberFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--accent) 40%, transparent),
+    var(--accent)
+  );
+  box-shadow: 0 0 10px color-mix(in oklch, var(--accent) 60%, transparent);
+}
+
+/* the native range sits invisible over the track, carrying the drag + keyboard
+   interaction and the accessible label. */
+.scrubberInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.scrubber:focus-within .scrubberTrack {
+  outline: 2px solid color-mix(in oklch, var(--accent) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* ---------- the landed fifth vessel (AnyPINN, small, top-left) ---------- */
+
+/* the seam the Stage set-aside targets: a small glass vessel parked at the
+   instrument's top-left. [data-finale-landing] is the stable hook the Stage reads
+   to aim the departing vessel here. */
+.landing {
+  position: absolute;
+  top: clamp(0.9rem, 2.2vw, 1.6rem);
+  left: clamp(0.9rem, 2.2vw, 1.6rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+  width: clamp(4.5rem, 11vw, 6.5rem);
+}
+
+.vessel {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--accent) 12%, var(--stage-2));
+  border-radius: 1.1rem;
+  box-shadow: 0 18px 40px -22px oklch(0 0 0 / 0.85);
+}
+
+/* the glass frame over the small vessel: rim light, gloss, specular, inner shadow
+   (token-driven) — the same CSS-faked glass the contact-sheet vessels wear. */
+.vesselGlass {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
+    radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
+  border: 1px solid color-mix(in oklch, white 12%, transparent);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 1px var(--glass-specular),
+    inset 0 -22px 44px var(--glass-inner-shadow);
+}
+
+.landingTag {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  color: color-mix(in oklch, var(--accent) 72%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+
+/* ---------- the badge (top-right, always present across tiers) ---------- */
+
+.badge {
+  position: absolute;
+  top: clamp(0.9rem, 2.2vw, 1.6rem);
+  right: clamp(0.9rem, 2.2vw, 1.6rem);
+  z-index: 2;
+  padding: 0.28rem 0.6rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  color: color-mix(in oklch, var(--accent) 64%, var(--ivory));
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--accent) 34%, transparent);
+  border-radius: 999px;
+}
+
+/* ---------- footer (the caption + the standalone footer sentence) ---------- */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  width: min(100%, 60rem);
+  margin: 0 auto;
+}
+
+.caption {
+  max-width: 52ch;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.02rem, 1.7vw, 1.2rem);
+  line-height: 1.55;
+  color: color-mix(in oklch, var(--ivory) 84%, transparent);
+}
+
+.footline {
+  max-width: 52ch;
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  color: color-mix(in oklch, var(--ivory) 52%, transparent);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- narrow: let the HUD and controls breathe ---------- */
+
+@media (max-width: 40rem) {
+  /* the knob track is the only read now the numerals are gone, so keep it (it
+     was hidden when a numeral sat beside it). */
+  .landing {
+    width: clamp(4rem, 18vw, 5rem);
+  }
+}
+
+/* reduced motion: the loading wash never pulses (the scene itself renders a
+   static still in this tier; this only quiets the transient loader). */
+@media (prefers-reduced-motion: reduce) {
+  .loading {
+    animation: none;
+  }
+
+  .knobDot {
+    transition: none;
+  }
+}
