@@ -258,3 +258,27 @@
 .ready .tile[data-phase="rest"] .restTag {
   transition: opacity 0.4s ease;
 }
+
+/* ---- handoff scroll-snap targets (Part B) ---- */
+
+/* Two zero-size, invisible snap targets that consolidate the handoff: one at the
+   contact-sheet rest (the stage top) and one at the resolved grid (the morph's
+   release point, positioned from JS in measure() to MORPH_END of a viewport down so
+   it matches the progress that maps to 1). With `scroll-snap-type: y proximity` on the
+   document (set only while the motion stage is mounted), the browser GENTLY completes
+   a half-finished handoff to the nearer end when the scroll comes to rest mid-morph,
+   using its own scroll physics — never trapping the scroll (proximity, not mandatory),
+   respecting the input device and reduced motion. Below the resolved point there are
+   no snap targets, so the grid and the rest of the page scroll freely. */
+.snap {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  scroll-snap-align: start;
+}
+
+.snapRest {
+  top: 0;
+}

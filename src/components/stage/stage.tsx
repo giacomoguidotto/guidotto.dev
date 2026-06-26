@@ -74,6 +74,15 @@ const MORPH_END = 0.8;
 const HERO_REST = 0.02;
 // Above this progress the resolved cards are navigable / focusable.
 const RESOLVE_AT = 0.85;
+// The positional morph fills the WHOLE pinned distance: each tile finishes landing
+// exactly as the sticky pin releases, so there is no "looks done but keep scrolling"
+// dead tail. The earlier morph completed its easing at ~0.72 of the pin, leaving the
+// last ~0.28 (≈22% of a viewport) as a hold where the grid read as done but the page
+// was still pinned — the "you're at .9, scroll a bit more" dangle. Filling the pin
+// removes that: the smoothstep's hard ease-out near the end reads as a settle without
+// any static hold, and the morph stays in motion right up to the release into normal
+// scroll. Pull this below 1 to trade a sliver of pre-release hold for a snappier morph.
+const MORPH_LANDING = 1;
 
 // Both the hero vessel and the proof card use a 1.4rem corner: it is CONSTANT
 // across the morph (the earlier "rounder vitrine radius" is dropped so rest matches
@@ -508,7 +517,7 @@ const danceDelta = (rig: Rig, m: number): { x: number; y: number } => {
 // pirouette that returns to exactly the target — so the handoff arrives composed but
 // gets there by dancing (see the DANCE block).
 const drive = (rig: Rig, p: number, lit: boolean) => {
-  const m = smoothstep(0, 0.72, p);
+  const m = smoothstep(0, MORPH_LANDING, p);
   const delta = danceDelta(rig, m);
   const dx = lerp(rig.srcDx, rig.tgtDx, m) + delta.x;
   const dy = lerp(rig.srcDy, rig.tgtDy, m) + delta.y;
@@ -656,6 +665,9 @@ function MotionStage() {
   const copyRef = useRef<HTMLDivElement>(null);
   const batonRef = useRef<HTMLParagraphElement>(null);
   const labelRef = useRef<HTMLHeadingElement>(null);
+  // The resolved-grid scroll-snap target (Part B); positioned from JS in measure() to
+  // sit at the morph's release point.
+  const snapResolvedRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -697,6 +709,14 @@ function MotionStage() {
       // gridHeight + the morph distance.
       const gridHeight = grid.offsetHeight;
       stage.style.height = `${(gridHeight + MORPH_END * window.innerHeight).toFixed(2)}px`;
+      // Park the resolved scroll-snap target (Part B) at the morph's release — the
+      // same distance the progress reaches 1 — so the proximity snap lines up exactly
+      // with where the pin frees. Kept here so it tracks viewport resizes with the
+      // stage height; the rest target is static at the stage top (top: 0 in CSS).
+      const snapResolved = snapResolvedRef.current;
+      if (snapResolved) {
+        snapResolved.style.top = `${(MORPH_END * window.innerHeight).toFixed(2)}px`;
+      }
       // The grid is sticky-pinned at top: 0 during the morph; its current container
       // top lets buildPeerRig recover each cell's PINNED viewport home regardless of
       // the scroll measure() runs at.
@@ -874,6 +894,15 @@ function MotionStage() {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", remeasure);
+    // Enable the handoff's proximity scroll-snap (Part B). The document is the
+    // scroller, so the snap type lives on the root element; it is scoped to the motion
+    // stage's lifetime (restored on cleanup) and is `proximity` — not `mandatory` — so
+    // it only assists a half-finished handoff and never traps free scroll. Reduced
+    // motion never reaches here (the motion stage is gated behind no-preference), and
+    // the snap uses the browser's own scroll physics, so there is no second animator.
+    const rootStyle = document.documentElement.style;
+    const prevSnapType = rootStyle.scrollSnapType;
+    rootStyle.scrollSnapType = "y proximity";
     // The coordinator listens on the whole stage so it catches both the in-flow grid
     // peers and the absolutely-placed showpiece in the pin's vitrine layer.
     stage.addEventListener("pointerover", onOver);
@@ -919,6 +948,7 @@ function MotionStage() {
       pin.style.removeProperty("--live-accent");
       pin.removeAttribute("data-settling");
       stage.style.height = "";
+      rootStyle.scrollSnapType = prevSnapType;
     };
   }, []);
 
@@ -977,6 +1007,18 @@ function MotionStage() {
           </ul>
         </section>
       </div>
+
+      {/* the two handoff snap points (Part B): invisible, zero-size proximity snap
+          targets — one at the contact-sheet rest (the stage top) and one at the
+          resolved grid (the morph's release, positioned from JS in measure() so it
+          tracks the pin distance). With `scroll-snap-type: y proximity` on the
+          document (set only while the motion stage is mounted), the browser's own
+          scroll physics gently completes a half-finished handoff to the nearer end
+          when the scroll comes to rest mid-morph, and never traps free scroll —
+          below the resolved point there are no snap targets, so the grid and the rest
+          of the page scroll normally. */}
+      <div className={`${styles.snap} ${styles.snapRest}`} />
+      <div className={styles.snap} ref={snapResolvedRef} />
     </div>
   );
 }
