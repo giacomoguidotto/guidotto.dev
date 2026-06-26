@@ -45,6 +45,11 @@ const TUBE_RADIUS = 0.42;
 const COMET_TRAIL = 28;
 const COMET_RADIUS = 0.26;
 const COMET_PERIOD_MS = 7000;
+// Fraction of each loop spent fading the comet in (as it leaves the curve's
+// start) and out (as it reaches the end). The attractor is an OPEN curve, so a
+// hard wrap would teleport the head across the seam; instead it fades away at
+// the end and fades back in at the start.
+const COMET_FADE = 0.16;
 
 // Timing of the once-on-view play-through (ms).
 const INTRO_MS = 1100; // motes rain in
@@ -170,32 +175,42 @@ function stepTube(
   mat.opacity = 0.3 + 0.7 * smoothstep(0, 0.85, controller.progress);
 }
 
-/** Trace the comet window backwards along the converged curve and sweep its tail. */
+/** Trace the comet from the start of the converged curve to its end, then fade
+ *  out and fade back in at the start — the curve is open, so it never wraps. */
 function stepComet(
   group: Group | null,
   trailGeom: BufferGeometry | null,
+  trailMat: MeshBasicMaterial | null,
   head: Object3D | null,
+  headMat: MeshBasicMaterial | null,
   data: FinaleData,
   s: Scratch,
-  now: number,
+  cometTime: number,
   converged: boolean
 ) {
   if (group) {
     group.visible = converged;
   }
-  if (!(converged && trailGeom && head)) {
+  if (!(converged && trailGeom && trailMat && head && headMat)) {
     return;
   }
   const line = data.centerlines[data.snapshotCount - 1];
   const span = TUBE_SAMPLES - 1;
-  const headPos = ((now / COMET_PERIOD_MS) % 1) * span;
+  const phase = (((cometTime / COMET_PERIOD_MS) % 1) + 1) % 1; // [0, 1)
+  const headPos = phase * span;
+  // Ease in over the first COMET_FADE of the loop, ease out over the last —
+  // so the head dissolves at the curve's end and re-forms at its start.
+  const fade =
+    smoothstep(0, COMET_FADE, phase) *
+    (1 - smoothstep(1 - COMET_FADE, 1, phase));
   for (let i = 0; i < COMET_TRAIL; i++) {
-    // i = 0 tail .. COMET_TRAIL-1 head, walking back along the curve.
+    // i = 0 tail .. COMET_TRAIL-1 head, walking back along the curve. Clamp
+    // (never wrap) so the tail bunches at the start instead of bridging the seam.
     const idx = headPos - (COMET_TRAIL - 1 - i);
-    const wrapped = ((idx % span) + span) % span;
-    const lo = Math.floor(wrapped);
+    const clamped = Math.max(0, Math.min(span, idx));
+    const lo = Math.floor(clamped);
     const hi = Math.min(span, lo + 1);
-    const t = wrapped - lo;
+    const t = clamped - lo;
     s.cometCenter[i * 3] = line[lo * 3] + (line[hi * 3] - line[lo * 3]) * t;
     s.cometCenter[i * 3 + 1] =
       line[lo * 3 + 1] + (line[hi * 3 + 1] - line[lo * 3 + 1]) * t;
@@ -204,6 +219,8 @@ function stepComet(
   }
   writeTube(s.cometPositions, s.cometCenter, COMET_TRAIL, RADIAL, COMET_RADIUS);
   trailGeom.attributes.position.needsUpdate = true;
+  trailMat.opacity = fade;
+  headMat.opacity = fade;
   const h = (COMET_TRAIL - 1) * 3;
   head.position.set(
     s.cometCenter[h],
@@ -217,14 +234,10 @@ function stepBloom(
   bloom: BloomEffect | null,
   clock: Clock,
   progress: number,
-  now: number,
-  converged: boolean
+  now: number
 ) {
   if (!bloom) {
     return;
-  }
-  if (converged && clock.convergedAt < 0) {
-    clock.convergedAt = now;
   }
   const baseGlow = 0.45 + 1.05 * smoothstep(0.5, 1, progress);
   const peak =
@@ -272,7 +285,9 @@ function SceneContents({ accent, controller, data }: SceneProps) {
   const motesMat = useRef<PointsMaterial>(null);
   const cometGroup = useRef<Group>(null);
   const cometTrailGeom = useRef<BufferGeometry>(null);
+  const cometTrailMat = useRef<MeshBasicMaterial>(null);
   const cometHead = useRef<Mesh>(null);
+  const cometHeadMat = useRef<MeshBasicMaterial>(null);
   const bloom = useRef<BloomEffect>(null);
 
   const accentColor = useMemo(() => new Color(accent), [accent]);
@@ -286,6 +301,12 @@ function SceneContents({ accent, controller, data }: SceneProps) {
     const now = performance.now();
     stepTiming(controller, clock.current, delta * 1000);
     const converged = controller.progress >= CONVERGED;
+    // Latch the convergence instant before the comet/bloom read it, so both the
+    // bloom decay and the comet loop share one origin and the comet fades in
+    // cleanly the first time it appears.
+    if (converged && clock.current.convergedAt < 0) {
+      clock.current.convergedAt = now;
+    }
     stepMotes(
       motesGeom.current,
       motesMat.current,
@@ -297,19 +318,15 @@ function SceneContents({ accent, controller, data }: SceneProps) {
     stepComet(
       cometGroup.current,
       cometTrailGeom.current,
+      cometTrailMat.current,
       cometHead.current,
+      cometHeadMat.current,
       data,
       scratch,
-      now,
+      clock.current.convergedAt < 0 ? 0 : now - clock.current.convergedAt,
       converged
     );
-    stepBloom(
-      bloom.current,
-      clock.current,
-      controller.progress,
-      now,
-      converged
-    );
+    stepBloom(bloom.current, clock.current, controller.progress, now);
   });
 
   return (
@@ -386,6 +403,7 @@ function SceneContents({ accent, controller, data }: SceneProps) {
           <meshBasicMaterial
             blending={AdditiveBlending}
             depthWrite={false}
+            ref={cometTrailMat}
             side={DoubleSide}
             toneMapped={false}
             transparent
@@ -398,7 +416,9 @@ function SceneContents({ accent, controller, data }: SceneProps) {
             blending={AdditiveBlending}
             color={accent}
             depthWrite={false}
+            ref={cometHeadMat}
             toneMapped={false}
+            transparent
           />
         </mesh>
       </group>
