@@ -17,17 +17,27 @@ export interface FinaleController {
   progress: number;
   /** Observation motes pop in, 0 -> 1 (scene writes during the intro beat). */
   reveal: number;
+  /** Snapshot the morph rests on at progress 1 — the first one indistinguishable
+   *  from the converged butterfly. The last training snapshots are visually
+   *  frozen (the net has settled), so progress 1 lands here rather than on the
+   *  identical final frame, and the autoplay eases to a stop on the settling
+   *  butterfly instead of crawling through dead frames. */
+  readonly settleIndex: number;
   readonly snapshotCount: number;
   /** True while a pointer is down on the scrubber, pausing autoplay. */
   userScrubbing: boolean;
 }
 
-export function createController(snapshotCount: number): FinaleController {
+export function createController(
+  snapshotCount: number,
+  settleIndex: number = snapshotCount - 1
+): FinaleController {
   return {
     progress: 0,
     autoplayActive: true,
     userScrubbing: false,
     reveal: 0,
+    settleIndex,
     snapshotCount,
   };
 }
@@ -36,10 +46,12 @@ export function createController(snapshotCount: number): FinaleController {
  *  Progress is clamped to [0, 1] here so a stray out-of-range write (a future
  *  input path, a rounding overshoot) can never derive an out-of-bounds snapshot
  *  index — `Showpiece.params`/`loss` assert their index and would otherwise throw
- *  inside the HUD's animation frame. */
+ *  inside the HUD's animation frame. Progress 1 maps to `settleIndex`, not the
+ *  final snapshot, so the morph (and the scrubber) rest on the settled butterfly
+ *  and never dwell on the visually-frozen tail. */
 export function snapshotFloat(controller: FinaleController): number {
   const progress = Math.min(1, Math.max(0, controller.progress));
-  return progress * (controller.snapshotCount - 1);
+  return progress * controller.settleIndex;
 }
 
 /** Nearest integer snapshot index for a progress value (for HUD params/loss). */

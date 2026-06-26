@@ -34,6 +34,13 @@ interface Center {
   readonly z: number;
 }
 
+/** A snapshot is "settled" once its centerline sits within this fraction of the
+ *  whole journey's deviation from the converged shape — i.e. it already looks
+ *  like the final butterfly. The last few training snapshots are visually
+ *  identical (the net has converged), so the uncurl should rest on the first of
+ *  them rather than crawl through the frozen tail. */
+const SETTLE_EPSILON = 0.03;
+
 export interface FinaleData {
   /** One Float32Array[TUBE_SAMPLES * 3] of scene-space centerline points per
    *  snapshot, in epoch order. The renderer lerps between adjacent entries. */
@@ -41,8 +48,51 @@ export interface FinaleData {
   readonly moteCount: number;
   /** Scene-space observation motes [count * 3] (the noisy data the net fit). */
   readonly motes: Float32Array;
+  /** Index of the first snapshot indistinguishable from the converged butterfly
+   *  (see {@link findSettleIndex}). The autoplay decelerates onto this snapshot
+   *  and rests, so it eases to a stop on the settling butterfly instead of
+   *  crawling through the visually-frozen final snapshots. */
+  readonly settleIndex: number;
   readonly showpiece: Showpiece;
   readonly snapshotCount: number;
+}
+
+/** Max per-vertex distance between two equal-length centerlines. */
+function centerlineDistance(a: Float32Array, b: Float32Array): number {
+  let maxSq = 0;
+  for (let i = 0; i < a.length; i += 3) {
+    const dx = a[i] - b[i];
+    const dy = a[i + 1] - b[i + 1];
+    const dz = a[i + 2] - b[i + 2];
+    maxSq = Math.max(maxSq, dx * dx + dy * dy + dz * dz);
+  }
+  return Math.sqrt(maxSq);
+}
+
+/** First snapshot already within {@link SETTLE_EPSILON} of the converged shape.
+ *  Measured against the *final* centerline (not step-to-step), so a slow, still-
+ *  converging tail can never be mistaken for "settled": it only returns once the
+ *  curve genuinely matches its destination. */
+function findSettleIndex(centerlines: readonly Float32Array[]): number {
+  const last = centerlines.length - 1;
+  if (last <= 0) {
+    return last;
+  }
+  const final = centerlines[last];
+  let span = 0;
+  for (let i = 0; i < last; i++) {
+    span = Math.max(span, centerlineDistance(centerlines[i], final));
+  }
+  if (span === 0) {
+    return last;
+  }
+  const threshold = span * SETTLE_EPSILON;
+  for (let i = 0; i <= last; i++) {
+    if (centerlineDistance(centerlines[i], final) <= threshold) {
+      return i;
+    }
+  }
+  return last;
 }
 
 /** Midpoint of the final trajectory's bounding box, per axis. */
@@ -123,5 +173,14 @@ export async function loadFinaleData(
     );
   }
 
-  return { centerlines, motes, moteCount, showpiece, snapshotCount };
+  const settleIndex = findSettleIndex(centerlines);
+
+  return {
+    centerlines,
+    motes,
+    moteCount,
+    settleIndex,
+    showpiece,
+    snapshotCount,
+  };
 }

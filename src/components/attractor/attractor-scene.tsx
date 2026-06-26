@@ -9,11 +9,13 @@
 // frame) renders last.
 //
 // The render:
-//   - observation motes pop in one by one, in a random order, as faint cool-white
-//     points — assembling the scattered noisy-data cloud the net will fit (they do
-//     not fall in: each springs to size at its own moment, then the fit begins);
+//   - observation motes pop in one by one, in a building crescendo (a few, then a
+//     flurry), as faint cool-white points — assembling the scattered noisy-data
+//     cloud the net will fit (they do not fall in: each springs to size at its own
+//     moment, then the fit begins);
 //   - the learned field is a glowing accent tube that uncurls across the replayed
-//     snapshots and snaps into the both-lobed butterfly;
+//     snapshots and snaps into the both-lobed butterfly — fast off the tangled
+//     stub, then decelerating to rest on the settled butterfly;
 //   - additive bloom swells to a peak at convergence, then eases back;
 //   - a comet then traces the converged attractor forever (a fading additive tail);
 //   - drag orbits the genuinely-3D object; depth fog dims the far lobe.
@@ -55,10 +57,10 @@ const COMET_PERIOD_MS = 7000;
 const COMET_FADE = 0.16;
 
 // Timing of the once-on-view play-through (ms).
-const INTRO_MS = 1500; // motes pop in, in random order
-const HOLD_MS = 350; // a beat on the assembled noisy cloud
-const PLAY_MS = 6800; // uncurl 0 -> 1
-const PEAK_DECAY_MS = 1300; // bloom eases back after convergence
+const INTRO_MS = 2200; // motes pop in — a few, then a flurry (see MOTE_CRESCENDO)
+const HOLD_MS = 400; // a beat on the assembled noisy cloud
+const PLAY_MS = 7400; // uncurl 0 -> 1, fast off the tangle then easing to rest
+const PEAK_DECAY_MS = 1500; // bloom eases back after convergence
 // Clamp the per-frame timeline step, so a pause (off-screen frame loop) or a
 // throttled background tab never makes the autoplay leap on resume.
 const MAX_FRAME_MS = 50;
@@ -73,6 +75,13 @@ const MOTE_OPACITY = 0.5;
 // point rather than fading or falling in.
 const POP_SPAN = 0.22;
 const POP_OVERSHOOT = 1.3;
+// Back-loads the mote spawn: with this > 1 the cloud opens sparse — a few lonely
+// points — then accelerates into a flurry, rather than a steady, uniform drizzle.
+const MOTE_CRESCENDO = 2.2;
+// Steepness of the uncurl's deceleration (the ease-out power). Higher = a harder
+// initial kick (so the briefly-ugly tangle settling inside the cloud is over fast)
+// and a longer, gentler glide to rest as the butterfly settles.
+const CONVERGE_DECEL = 2.6;
 const CONVERGED = 0.999;
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
@@ -87,6 +96,13 @@ const easeOutBack = (t: number): number => {
   const u = t - 1;
   return 1 + c3 * u * u * u + POP_OVERSHOOT * u * u;
 };
+// convergeEase: the uncurl's pacing, 0 at t=0 to 1 at t=1. An ease-out (fastest
+// at the start, decelerating to a standstill) — NOT the old symmetric smoothstep,
+// whose slow-in dwelt on the tangled epoch-0 stub. Paired with the settle remap
+// (progress 1 -> the settled butterfly), the long slow tail lands on the butterfly
+// coming to rest, not on the visually-frozen final frames.
+const convergeEase = (t: number): number =>
+  1 - (1 - clamp01(t)) ** CONVERGE_DECEL;
 
 // PointsMaterial sizes every point from one `size` uniform, so per-mote popping
 // needs a per-vertex multiplier: patch the vertex shader to scale gl_PointSize by
@@ -146,7 +162,7 @@ function stepTiming(controller: FinaleController, clock: Clock, dtMs: number) {
     const playElapsed = elapsed - INTRO_MS - HOLD_MS;
     if (playElapsed > 0) {
       const raw = clamp01(playElapsed / PLAY_MS);
-      controller.progress = smoothstep(0, 1, raw);
+      controller.progress = convergeEase(raw);
       if (raw >= 1) {
         controller.autoplayActive = false;
       }
@@ -154,10 +170,11 @@ function stepTiming(controller: FinaleController, clock: Clock, dtMs: number) {
   }
 }
 
-/** Pop the observation motes in at their scattered positions, in random order, to
- *  assemble the noisy data cloud — each springs to full size (a small overshoot)
- *  at its own threshold; none fall in. Driven by `reveal` (0 -> 1), so every mote
- *  has finished popping before the field tube's approximation begins. */
+/** Pop the observation motes in at their scattered positions, in a building
+ *  crescendo (sparse, then a flurry), to assemble the noisy data cloud — each
+ *  springs to full size (a small overshoot) at its own threshold; none fall in.
+ *  Driven by `reveal` (0 -> 1), so every mote has finished popping before the
+ *  field tube's approximation begins. */
 function stepMotes(
   geom: BufferGeometry | null,
   mat: PointsMaterial | null,
@@ -265,11 +282,14 @@ function stepBloom(
   if (!bloom) {
     return;
   }
-  const baseGlow = 0.45 + 1.05 * smoothstep(0.5, 1, progress);
+  // The glow grows through the back half of the uncurl and crests as the butterfly
+  // settles — because the morph decelerates onto its rest here, the rising light
+  // (not motion) carries the final beat, so the slow finish reads as arrival.
+  const baseGlow = 0.4 + 1.25 * smoothstep(0.4, 1, progress);
   const peak =
     clock.convergedAt < 0
       ? 0
-      : 1.5 * Math.exp(-(now - clock.convergedAt) / PEAK_DECAY_MS);
+      : 1.3 * Math.exp(-(now - clock.convergedAt) / PEAK_DECAY_MS);
   bloom.intensity = baseGlow + peak;
 }
 
@@ -292,7 +312,10 @@ function buildScratch(data: FinaleData, accentColor: Color): Scratch {
     motePop: new Float32Array(data.moteCount),
     motePopStart: Float32Array.from(
       { length: data.moteCount },
-      () => Math.random() * (1 - POP_SPAN)
+      // 1 - (1 - u)^MOTE_CRESCENDO biases the thresholds toward late: most motes
+      // pop near the end of the reveal (the flurry), a few open it (the stragglers
+      // — so the frame is never dead), giving the cloud an accelerating crescendo.
+      () => (1 - (1 - Math.random()) ** MOTE_CRESCENDO) * (1 - POP_SPAN)
     ),
     cometCenter: new Float32Array(COMET_TRAIL * 3),
     cometPositions: new Float32Array(COMET_TRAIL * RADIAL * 3),

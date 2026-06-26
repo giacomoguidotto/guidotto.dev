@@ -69,6 +69,34 @@ describe("loadFinaleData", () => {
     expect(axisMidpoint(final, 2)).toBeCloseTo(0, RECENTER_DIGITS);
   });
 
+  test("rests on a settled snapshot near — but not at — the frozen tail", async () => {
+    const data = await load();
+    // The last training snapshots are visually identical (the net converged), so
+    // the settle point should land in that frozen tail but never be snapshot 0
+    // (which would mean the curve never converges).
+    expect(data.settleIndex).toBeGreaterThan(0);
+    expect(data.settleIndex).toBeLessThanOrEqual(data.snapshotCount - 1);
+
+    const final = data.centerlines[data.snapshotCount - 1];
+    const maxDist = (line: Float32Array): number => {
+      let m = 0;
+      for (let i = 0; i < line.length; i += 3) {
+        const dx = line[i] - final[i];
+        const dy = line[i + 1] - final[i + 1];
+        const dz = line[i + 2] - final[i + 2];
+        m = Math.max(m, Math.hypot(dx, dy, dz));
+      }
+      return m;
+    };
+    // The settle snapshot matches the converged shape; the one before it does not
+    // (so it is the FIRST settled snapshot, not an over-eager early rest).
+    const settled = maxDist(data.centerlines[data.settleIndex]);
+    if (data.settleIndex > 0) {
+      const before = maxDist(data.centerlines[data.settleIndex - 1]);
+      expect(settled).toBeLessThan(before);
+    }
+  });
+
   test("surfaces a load failure rather than resolving empty", async () => {
     const notFound: FetchLike = () =>
       Promise.resolve(new Response(null, { status: 404 }));

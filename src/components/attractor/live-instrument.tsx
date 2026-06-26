@@ -141,7 +141,10 @@ export function LiveInstrument() {
       setStatus("loading");
       loadFinaleData()
         .then((data) => {
-          const controller = createController(data.snapshotCount);
+          const controller = createController(
+            data.snapshotCount,
+            data.settleIndex
+          );
           if (!webgl) {
             freezeConverged(controller);
           }

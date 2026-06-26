@@ -51,4 +51,21 @@ describe("createController", () => {
     expect(controller.userScrubbing).toBe(false);
     expect(controller.snapshotCount).toBe(37);
   });
+
+  test("defaults the settle target to the final snapshot", () => {
+    expect(createController(37).settleIndex).toBe(36);
+  });
+});
+
+describe("settleIndex", () => {
+  test("progress 1 rests on the settle snapshot, not the frozen final frame", () => {
+    const controller = { ...createController(37, 33), progress: 1 };
+    expect(snapshotFloat(controller)).toBe(33);
+    expect(snapshotIndex(controller)).toBe(33);
+  });
+
+  test("the scrubbable span compresses onto [0, settleIndex]", () => {
+    const controller = { ...createController(37, 33), progress: 0.5 };
+    expect(snapshotFloat(controller)).toBeCloseTo(16.5, 10);
+  });
 });
