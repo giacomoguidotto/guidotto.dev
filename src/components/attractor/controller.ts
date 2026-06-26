@@ -15,7 +15,7 @@ export interface FinaleController {
   autoplayActive: boolean;
   /** Training progress, 0 (epoch 0) -> 1 (converged). Scene + scrubber write. */
   progress: number;
-  /** Observation motes rain-in, 0 -> 1 (scene writes during the intro beat). */
+  /** Observation motes pop in, 0 -> 1 (scene writes during the intro beat). */
   reveal: number;
   readonly snapshotCount: number;
   /** True while a pointer is down on the scrubber, pausing autoplay. */

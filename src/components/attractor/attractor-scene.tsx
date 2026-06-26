@@ -9,7 +9,9 @@
 // frame) renders last.
 //
 // The render:
-//   - observation motes rain in as faint cool-white points (the noisy data);
+//   - observation motes pop in one by one, in a random order, as faint cool-white
+//     points — assembling the scattered noisy-data cloud the net will fit (they do
+//     not fall in: each springs to size at its own moment, then the fit begins);
 //   - the learned field is a glowing accent tube that uncurls across the replayed
 //     snapshots and snaps into the both-lobed butterfly;
 //   - additive bloom swells to a peak at convergence, then eases back;
@@ -53,8 +55,8 @@ const COMET_PERIOD_MS = 7000;
 const COMET_FADE = 0.16;
 
 // Timing of the once-on-view play-through (ms).
-const INTRO_MS = 1100; // motes rain in
-const HOLD_MS = 300; // a beat on the noisy seed
+const INTRO_MS = 1500; // motes pop in, in random order
+const HOLD_MS = 350; // a beat on the assembled noisy cloud
 const PLAY_MS = 6800; // uncurl 0 -> 1
 const PEAK_DECAY_MS = 1300; // bloom eases back after convergence
 // Clamp the per-frame timeline step, so a pause (off-screen frame loop) or a
@@ -65,6 +67,12 @@ const FOG_COLOR = "#05060c";
 const FOG_NEAR = 48;
 const FOG_FAR = 108;
 const MOTE_COLOR = "#c7d2e8";
+const MOTE_OPACITY = 0.5;
+// Each mote pops in over this fraction of the intro reveal, and overshoots its
+// size by this much at the top of the spring — so the cloud assembles point by
+// point rather than fading or falling in.
+const POP_SPAN = 0.22;
+const POP_OVERSHOOT = 1.3;
 const CONVERGED = 0.999;
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
@@ -72,6 +80,23 @@ const smoothstep = (a: number, b: number, x: number): number => {
   const t = clamp01((x - a) / (b - a));
   return t * t * (3 - 2 * t);
 };
+// easeOutBack: 0 at t=0, overshoots just past 1, then settles back to 1 — the
+// little spring that makes a mote pop into place.
+const easeOutBack = (t: number): number => {
+  const c3 = POP_OVERSHOOT + 1;
+  const u = t - 1;
+  return 1 + c3 * u * u * u + POP_OVERSHOOT * u * u;
+};
+
+// PointsMaterial sizes every point from one `size` uniform, so per-mote popping
+// needs a per-vertex multiplier: patch the vertex shader to scale gl_PointSize by
+// an `aPop` attribute (0 = not yet popped, so the point is zero-size / invisible).
+function patchMotePop(shader: { vertexShader: string }): void {
+  shader.vertexShader = shader.vertexShader
+    .replace("void main() {", "attribute float aPop;\nvoid main() {")
+    .replace("gl_PointSize = size;", "gl_PointSize = size * aPop;");
+}
+const moteCacheKey = (): string => "mote-pop";
 
 interface SceneProps {
   readonly accent: string;
@@ -91,9 +116,11 @@ interface Scratch {
   readonly cometColors: Float32Array;
   readonly cometIndex: Uint16Array;
   readonly cometPositions: Float32Array;
-  readonly moteDelay: Float32Array;
+  /** Per-mote size multiplier, 0 -> ~1, written each frame as motes pop in. */
+  readonly motePop: Float32Array;
+  /** Per-mote reveal threshold (random) — when in [0,1] that mote starts popping. */
+  readonly motePopStart: Float32Array;
   readonly motePositions: Float32Array;
-  readonly moteRise: Float32Array;
   readonly tubeIndex: Uint16Array;
   readonly tubePositions: Float32Array;
   readonly workLine: Float32Array;
@@ -105,7 +132,7 @@ interface Clock {
   elapsed: number;
 }
 
-/** Advance the once-on-view timeline: motes rain-in, then autoplay the training.
+/** Advance the once-on-view timeline: motes pop in, then autoplay the training.
  *  Driven by accumulated frame time (not wall-clock), so pausing the frame loop
  *  off-screen freezes the beat rather than skipping it. */
 function stepTiming(controller: FinaleController, clock: Clock, dtMs: number) {
@@ -127,7 +154,10 @@ function stepTiming(controller: FinaleController, clock: Clock, dtMs: number) {
   }
 }
 
-/** Fall the motes in from a random height, fading them up to faint cool-white. */
+/** Pop the observation motes in at their scattered positions, in random order, to
+ *  assemble the noisy data cloud — each springs to full size (a small overshoot)
+ *  at its own threshold; none fall in. Driven by `reveal` (0 -> 1), so every mote
+ *  has finished popping before the field tube's approximation begins. */
 function stepMotes(
   geom: BufferGeometry | null,
   mat: PointsMaterial | null,
@@ -138,17 +168,12 @@ function stepMotes(
   if (!(geom && mat)) {
     return;
   }
-  const base = data.motes;
   for (let k = 0; k < data.moteCount; k++) {
-    const window = 1 - s.moteDelay[k];
-    const local = clamp01((reveal - s.moteDelay[k]) / window);
-    const fall = (1 - local) * s.moteRise[k];
-    s.motePositions[k * 3] = base[k * 3];
-    s.motePositions[k * 3 + 1] = base[k * 3 + 1] + fall;
-    s.motePositions[k * 3 + 2] = base[k * 3 + 2];
+    const local = clamp01((reveal - s.motePopStart[k]) / POP_SPAN);
+    s.motePop[k] = Math.max(0, easeOutBack(local));
   }
-  geom.attributes.position.needsUpdate = true;
-  mat.opacity = 0.16 + 0.34 * reveal;
+  geom.attributes.aPop.needsUpdate = true;
+  mat.opacity = MOTE_OPACITY;
 }
 
 /** Interpolate between adjacent snapshots and sweep the field tube around it. */
@@ -264,13 +289,10 @@ function buildScratch(data: FinaleData, accentColor: Color): Scratch {
     tubePositions: new Float32Array(TUBE_SAMPLES * RADIAL * 3),
     tubeIndex: buildTubeIndex(TUBE_SAMPLES, RADIAL),
     motePositions: new Float32Array(data.motes),
-    moteRise: Float32Array.from(
+    motePop: new Float32Array(data.moteCount),
+    motePopStart: Float32Array.from(
       { length: data.moteCount },
-      () => 22 + Math.random() * 26
-    ),
-    moteDelay: Float32Array.from(
-      { length: data.moteCount },
-      () => Math.random() * 0.4
+      () => Math.random() * (1 - POP_SPAN)
     ),
     cometCenter: new Float32Array(COMET_TRAIL * 3),
     cometPositions: new Float32Array(COMET_TRAIL * RADIAL * 3),
@@ -354,12 +376,18 @@ function SceneContents({ accent, controller, data }: SceneProps) {
             args={[scratch.motePositions, 3]}
             attach="attributes-position"
           />
+          <bufferAttribute
+            args={[scratch.motePop, 1]}
+            attach="attributes-aPop"
+          />
         </bufferGeometry>
         <pointsMaterial
           color={MOTE_COLOR}
+          customProgramCacheKey={moteCacheKey}
           depthWrite={false}
           fog
-          opacity={0.16}
+          onBeforeCompile={patchMotePop}
+          opacity={MOTE_OPACITY}
           ref={motesMat}
           size={0.55}
           sizeAttenuation
