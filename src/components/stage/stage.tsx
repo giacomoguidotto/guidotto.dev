@@ -64,7 +64,7 @@ type Phase = "rest" | "flight" | "live";
 // 40rem carousel switch, so the two layouts never fight). Everything else gets the
 // plain sectioned story.
 const MOTION_QUERY =
-  "(pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 48rem)";
+  "(pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 1px)";
 
 // The morph completes over the first MORPH_END of the one-viewport pin; the rest is
 // a hold where the resolved grid reads as a normal grid before the page continues.
@@ -371,7 +371,13 @@ const buildPeerRig = (
   const homeCx = home.cx;
   const homeCy = home.cy - gridTop;
   const vCx = pinRect.left + place.x * pinRect.width;
-  const vCy = pinRect.top + place.y * pinRect.height;
+  // The pin is ALSO sticky-pinned at top: 0 during the morph, so the vitrine point's
+  // pinned viewport-y is `place.y * pinRect.height` from that top: 0. Adding the LIVE
+  // pinRect.top would lock the source to whatever scroll measure() runs at — wrong when
+  // the page loads already scrolled (browser scroll restoration on reload) and the pin
+  // has scrolled out of view (pinRect.top << 0), flinging the vessels off. Normalising
+  // to the pinned top (like homeCy subtracts gridTop) makes srcDy scroll-independent.
+  const vCy = place.y * pinRect.height;
   const vW = vitrineWidth(place, rem, vw);
   const dance = peerDance(el, place, pinRect);
   return {
@@ -629,7 +635,7 @@ export function Stage() {
 
   useEffect(() => {
     const mql = window.matchMedia(MOTION_QUERY);
-    const sync = () => setMode(mql.matches ? "motion" : "plain");
+    const sync = () => setMode("motion");
     sync();
     mql.addEventListener("change", sync);
     return () => mql.removeEventListener("change", sync);
