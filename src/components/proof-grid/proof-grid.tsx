@@ -14,12 +14,15 @@
 // Two layouts share that one coordinator:
 //   - Desktop (fine pointer / wider viewport): a 2x2 grid. Hover and keyboard
 //     focus set the active card.
-//   - Mobile (<= 40rem): a vertical, center-focused scroll-snap carousel. The
-//     card nearest the scroller's vertical center is the active one; an
-//     IntersectionObserver watching a thin centre band sets it as the user
-//     swipes, and scroll-snap settles to it. Hover never activates here (it is
-//     gated off in the card), which is what kills the old
-//     scroll-triggers-hover-for-a-second glitch on touch.
+//   - Mobile (<= 40rem): a vertical, center-focused story that flows in the PAGE'S
+//     OWN scroll (no nested scroller — CONTEXT 2026-06-27). The card nearest the
+//     viewport's vertical center is the active one; a VIEWPORT-rooted
+//     IntersectionObserver (root: null) watching a thin centre band sets it as the
+//     user swipes, while document-root `scroll-snap-type: y proximity` eases the
+//     nearest card to centre without ever trapping the scroll. A new centre settle
+//     fires a snap haptic (navigator.vibrate) as progressive enhancement. Hover
+//     never activates here (it is gated off in the card), which is what kills the
+//     old scroll-triggers-hover-for-a-second glitch on touch.
 //
 // Deep module: <ProofGrid /> is the entire interface; the cards, the glass, the
 // media seam, the accent wiring, the carousel observer, and the touch/tap logic
@@ -60,10 +63,12 @@ export function ProofGrid() {
     return () => mql.removeEventListener("change", apply);
   }, []);
 
-  // Mobile carousel: the card whose centre sits inside a thin band at the
-  // scroller's vertical centre is the one loud card. Active is never cleared to
-  // null here, so exactly one card stays loud between snaps. Disconnected (and
-  // re-built) whenever we leave / enter the carousel layout.
+  // Mobile center-focus: the card whose centre sits inside a thin band at the
+  // VIEWPORT'S vertical centre is the one loud card. The cards flow in the page's
+  // own scroll (no nested scroller), so the observer is rooted to the viewport
+  // (`root: null`), not the container. Active is never cleared to null here, so
+  // exactly one card stays loud between snaps. Disconnected (and re-built) whenever
+  // we leave / enter the carousel layout.
   useEffect(() => {
     if (!carousel) {
       return;
@@ -80,25 +85,53 @@ export function ProofGrid() {
     }
     // Open focused on the first peer so the carousel never starts dark.
     setActiveKey((prev) => prev ?? cards[0].dataset.key ?? null);
+    // The viewport is the scroller, so the proximity snap lives on the document
+    // root (the same root proximity snap the desktop morph sets in stage.tsx).
+    // `proximity` (never `mandatory`) only eases the nearest card to centre; it
+    // never traps free scroll. Scoped to this effect's lifetime, restored on
+    // cleanup, so the desktop 2x2 never snaps vertically.
+    const rootStyle = document.documentElement.style;
+    const prevSnapType = rootStyle.scrollSnapType;
+    rootStyle.scrollSnapType = "y proximity";
+    // Snap haptic is pure progressive enhancement and is off under reduced motion.
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    // The last card to settle at centre, so the haptic fires once per NEW settle
+    // (not on every observer tick).
+    let centeredKey: string | null = null;
+    const settle = (key: string) => {
+      setActiveKey(key);
+      if (key === centeredKey) {
+        return;
+      }
+      centeredKey = key;
+      // Snap haptic on a new centre settle: Android buzzes; iOS Safari has no
+      // Vibration API and silently no-ops. Off under reduced motion.
+      if (!reduce && typeof navigator.vibrate === "function") {
+        navigator.vibrate(8);
+      }
+    };
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const key = (entry.target as HTMLElement).dataset.key;
-            if (key) {
-              setActiveKey(key);
-            }
+          const key = (entry.target as HTMLElement).dataset.key;
+          if (entry.isIntersecting && key) {
+            settle(key);
           }
         }
       },
-      // Shrink the root to a ~10% band at the vertical centre: a card lands in it
-      // only when it is the centred one.
-      { root: container, rootMargin: "-45% 0px -45% 0px", threshold: 0 }
+      // Shrink the viewport to a ~10% band at its vertical centre: a card lands in
+      // it only when it is the centred one.
+      { root: null, rootMargin: "-45% 0px -45% 0px", threshold: 0 }
     );
     for (const card of cards) {
       observer.observe(card);
     }
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      rootStyle.scrollSnapType = prevSnapType;
+    };
   }, [carousel]);
 
   // Desktop hover / first-tap activation (not keyboard focus, so it leaves the

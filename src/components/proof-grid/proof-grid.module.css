@@ -84,50 +84,42 @@
   list-style: none;
 }
 
-/* mobile (<= 40rem): a vertical, centre-focused snap carousel instead of the 2x2
-   grid. The card nearest the scroller's centre is the loud one (set by the
-   IntersectionObserver centre band in ProofGrid); scroll-snap settles to it, so a
-   swipe lands on the closest project and focuses it. Neighbours recede (smaller +
-   quieter) so there's room to sense and pick the next one. Hover never activates
-   here (gated off in the card), which removes the scroll-triggers-hover glitch. */
+/* mobile (<= 40rem): a vertical, centre-focused story that flows in the PAGE'S OWN
+   scroll, with no nested scroller (CONTEXT 2026-06-27: mobile reads in the page's own
+   scroll). The cards stack in normal flow; the card nearest the viewport's centre is
+   the loud one (set by the viewport-rooted IntersectionObserver centre band in
+   ProofGrid). Snapping lives on the document root as `y proximity` (set from JS in
+   ProofGrid while the carousel is active, the same way the desktop morph does) with
+   per-card `scroll-snap-align: center`, so a card EASES to centre but never traps
+   free scroll (no `mandatory`, no overscroll containment). Neighbours
+   recede (smaller + quieter) so there's room to sense and pick the next one. Hover
+   never activates here (gated off in the card), which removes the
+   scroll-triggers-hover glitch. */
 @media (max-width: 40rem) {
   .section {
-    padding: 0;
+    padding: clamp(2.5rem, 9vw, 4rem) clamp(1.2rem, 4vw, 2rem);
   }
 
-  /* the carousel is a full-viewport snap scroller, so the label must NOT take flow
-     height (that would push the snap container off the fold). Float it in the empty
-     top band the carousel reserves (its 28svh padding-block), centred and inert. */
+  /* the label flows in-page above the stacked cards (no longer floated over a
+     captive scroller), centred over the single column. */
   .label {
-    position: absolute;
-    inset: clamp(1.4rem, 7vw, 3rem) 0 auto 0;
-    z-index: 2;
-    width: auto;
-    margin: 0;
+    width: 100%;
+    margin: 0 auto clamp(1.75rem, 7vw, 2.75rem);
     text-align: center;
-    pointer-events: none;
   }
 
   .grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: clamp(1.25rem, 5vw, 2.25rem);
+    gap: clamp(2.5rem, 9vw, 4rem);
     width: 100%;
-    height: 100svh;
-    /* let the first and last cards reach the vertical centre */
-    padding-block: 28svh;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scroll-snap-type: y mandatory;
-    scrollbar-width: none;
   }
 
-  .grid::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* each card is a root-proximity snap target that eases to the viewport centre.
+     scroll-margin reserves clearance so a card never snaps flush under the eyebrow
+     above or the finale below. No `scroll-snap-stop` — a fling is never trapped. */
   .item {
     scroll-snap-align: center;
-    scroll-snap-stop: always;
+    scroll-margin-block: 12svh;
   }
 
   /* neighbours shrink and quiet down; the centred (active) card is full and
