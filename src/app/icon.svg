@@ -1,0 +1,48 @@
+<svg
+  aria-labelledby="title"
+  height="512"
+  role="img"
+  viewBox="0 0 512 512"
+  width="512"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <title id="title">guidotto.dev signature G logo</title>
+  <desc>
+    The first G from the existing handwritten signature trace, set on the
+    guidotto.dev near-black-blue stage background.
+  </desc>
+  <defs>
+    <radialGradient cx="50%" cy="18%" id="stage" r="82%">
+      <stop offset="0" stop-color="#171d2a" />
+      <stop offset="0.56" stop-color="#0b0d15" />
+      <stop offset="1" stop-color="#06070c" />
+    </radialGradient>
+    <radialGradient cx="50%" cy="16%" id="spotlight" r="62%">
+      <stop offset="0" stop-color="#c7d2e8" stop-opacity="0.13" />
+      <stop offset="0.58" stop-color="#c7d2e8" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#c7d2e8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect fill="#06070c" height="512" width="512" />
+  <rect fill="url(#stage)" height="512" width="512" />
+  <rect fill="url(#spotlight)" height="512" width="512" />
+  <g
+    fill="none"
+    stroke="#f1ebdd"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2.75"
+    transform="translate(44 38) scale(4.58)"
+  >
+    <path
+      d="M52.8 14.8C53.1 14.7 54.4 13.7 53.5 13.6C53.1 13.5 52.6 13.8 52.3 14.1C51.4 14.7 50.6 15.5 49.8 16.1C46.2 19 43.1 22.3 40 25.6C37 28.8 34.2 31.9 31.5 35.2C29.8 37.4 28.2 39.6 26.5 41.8C23.4 45.7 20.1 49.4 17.1 53.5C14.3 57.4 11.5 61.3 8.6 65.1C7.7 66.4 6.6 67.7 5.7 69C5.4 69.4 5.4 69.9 5 70.3"
+    />
+    <path
+      d="M5.4 70.2C7 70.2 8.8 69 10.3 68.3C12.9 67 15.6 65.9 18.2 64.7C26.3 60.9 34.8 58 43.1 54.9C46 53.8 48.9 52.7 52 52.3C52.7 52.1 54.9 51.5 55 52.7C55 53.7 53.9 54.8 53.3 55.4C51.4 57.4 49.2 59.1 47 60.7C40.9 65.2 34.2 69.1 27.7 73C25.6 74.3 23.4 75.5 21.6 77C20.8 77.7 19.9 78.2 19.5 79.1L20.4 79.1L19.9 78.5"
+    />
+    <path
+      d="M20.5 79.1C24.9 76.6 29.6 74.7 34.3 72.8C38.1 71.2 41.9 69.7 45.8 68.4C49.7 67 54 65.3 58.2 64.9C60.4 64.6 62.5 64.7 64.5 65.9C66.2 66.8 67.5 68.5 69.5 69C73.1 69.9 76.8 67.7 79.9 66.1C81.4 65.3 83 64.7 84.4 63.7"
+    />
+  </g>
+</svg>

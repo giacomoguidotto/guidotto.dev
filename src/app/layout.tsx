@@ -21,6 +21,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const { site } = content;
+const logoUrl = new URL("/logo.svg", site.url).toString();
+const portraitUrl = new URL("/portrait/giacomo.jpg", site.url).toString();
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -32,6 +34,13 @@ export const metadata: Metadata = {
   publisher: site.name,
   category: "technology",
   alternates: { canonical: "/" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   formatDetection: { email: false, address: false, telephone: false },
   openGraph: {
     type: "website",
@@ -75,7 +84,8 @@ const personJsonLd = {
   jobTitle: site.jobTitle,
   url: site.url,
   description: site.description,
-  image: new URL("/portrait/giacomo.jpg", site.url).toString(),
+  image: [portraitUrl, logoUrl],
+  logo: logoUrl,
   sameAs: site.sameAs,
 };
 
@@ -86,6 +96,8 @@ const websiteJsonLd = {
   name: site.title,
   description: site.description,
   inLanguage: site.locale,
+  image: logoUrl,
+  logo: logoUrl,
   author: { "@id": `${site.url}/#person` },
 };
 

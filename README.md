@@ -1,5 +1,5 @@
 <p align="center">
-  <!-- Logo slot: add assets/logo.png, assets/logo.svg, or light/dark logo variants here. -->
+  <img src="public/logo.svg" alt="" width="160">
 </p>
 
 <h1 align="center">guidotto.dev</h1>
