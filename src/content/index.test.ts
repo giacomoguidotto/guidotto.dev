@@ -8,6 +8,7 @@ import { content } from "./index";
 const HTTPS = /^https:\/\//;
 const GITHUB_REPO = /^https:\/\/github\.com\//;
 const HEX6 = /^#[0-9A-Fa-f]{6}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ALL_STRINGS: string[] = collectStrings(content);
 
@@ -136,6 +137,14 @@ describe("mission / human / cta", () => {
   test("quiet rail keeps unsourced channels dark (never invented)", () => {
     const x = content.cta.rail.find((link) => link.label === "X");
     expect(x?.href).toBeNull();
+  });
+
+  test("click-to-copy surfaces the public contact address + a confirmation", () => {
+    // The surfaced address is the same inbox the form delivers to (adapters.tsx
+    // CONTACT_TO default), so the two never drift.
+    expect(content.cta.email).toBe("hello@guidotto.dev");
+    expect(content.cta.email).toMatch(EMAIL);
+    expect(content.cta.emailCopied.length).toBeGreaterThan(0);
   });
 });
 

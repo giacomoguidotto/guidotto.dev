@@ -122,6 +122,11 @@ export interface CtaContent {
   readonly button: string;
   readonly confirmation: string;
   readonly confirmationTitle: string;
+  /** The public contact address, surfaced as a click-to-copy fast path beside
+   *  the door (the same inbox the form delivers to). */
+  readonly email: string;
+  /** The brief "copied" confirmation under the earned-feedback law. */
+  readonly emailCopied: string;
   readonly fields: {
     readonly name: string;
     readonly email: string;
@@ -277,6 +282,10 @@ export const content: Content = {
     send: "Send",
     confirmationTitle: "Got it!",
     confirmation: "I'll get back to you soon.",
+    // The same inbox the contact form delivers to (adapters.tsx CONTACT_TO),
+    // surfaced for the paste-it-myself fast path. Public-safe, not invented.
+    email: "hello@guidotto.dev",
+    emailCopied: "Copied",
     rail: [
       { label: "LinkedIn", href: LINKEDIN },
       { label: "GitHub", href: GITHUB },
