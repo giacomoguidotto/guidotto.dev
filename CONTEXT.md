@@ -345,6 +345,27 @@ narrow / no-JS) fallback still composes the existing `<Hero />` + `<ProofGrid />
 and IS the server-rendered output; the morph only layers on for motion-welcome fine
 pointers wide enough for the 2x2.
 
+#### Decision (2026-06-27): mobile reads in the page's own scroll — no nested scroller
+
+The morph above stays desktop-only by design (`MOTION_QUERY`: fine pointer, ≥48rem);
+phones get the plain sectioned story, and that is correct — the handoff is a *second-6
+retention reward*, not load-bearing. But the mobile proof grid shipped as a
+**full-viewport nested scroller** (`height: 100svh; overflow-y: auto; overscroll-
+behavior-y: contain; scroll-snap-type: y mandatory`) — a scroll-inside-a-scroll. The
+page scroll ran *into* a 100svh box that deliberately trapped it (`overscroll-behavior:
+contain`) with mandatory snap, so hero → grid → finale read as broken: the page handed
+off to a captive carousel, not a continuous scroll. (This is the "scroll handoff is
+inexistent on mobile" report — the cards always rendered fine; the **container** was the
+bug, not a missing morph.)
+
+Fix: the cards live in the **page's own scroll** (no inner scroller). The "one loud
+card" center-focus reading is kept, but driven by a **viewport-rooted** Intersection-
+Observer (`root: null`) instead of the container's, and snapping moves to the **document
+root as `y proximity`** (the same root proximity snap the desktop morph already sets,
+stage.tsx) with `scroll-snap-align: center` + `scroll-margin` per card — a card *eases*
+to center but **never traps** (no `mandatory`, no overscroll containment). Free scroll
+from pixel one, the law the handoff always promised, now true on the phone.
+
 ### Showpiece — "The Attractor" (AnyPINN · Lorenz)
 
 The crown jewel is **AnyPINN solving the Lorenz system live in WebGL**, presented as
@@ -410,6 +431,34 @@ static converged butterfly (final weights only, Phase-2 fallback) →
 `prefers-reduced-motion` shows the converged attractor with no auto-motion. The slot
 stays **pluggable** (swaps to any flagship that later earns "live") — its job is "the
 showpiece," not "the research project."
+
+#### Decision (2026-06-27): the instrument is portrait + one-finger-native on the phone
+
+The instrument shipped at `aspect-ratio: 16/11` (landscape) — on a portrait phone a
+short, wide box stranded mid-viewport with dead space above and below (the object reads
+small), whose only orbit gesture was **two-finger** (one finger reserved for page
+scroll), which is undiscoverable on touch. Three corrections, all `≤40rem`-only (desktop
+is untouched):
+
+- **Portrait frame, re-aimed camera.** On the phone the instrument takes a portrait
+  aspect sized as a generous *portion* of the viewport, capped by `max-height` so the
+  eyebrow/line above and caption below always have room. The section stays a **soft**
+  one-viewport — `min-height: 100svh` as a floor, secondary copy (footline) may spill
+  just below the fold on the shortest devices rather than crushing the showpiece. Aspect
+  alone is not enough: the Lorenz butterfly is wider-than-tall (two lobes around the
+  vertical z-axis), so the scene **re-frames its default camera per-aspect** (dolly in +
+  a more vertical / three-quarter default) so the object *fills* the tall frame, DPR
+  tuned for the phone.
+- **One-finger orbit, never a scroll-lock.** Inside the canvas a **horizontal** drag
+  spins the butterfly (azimuth — the real reward) while a **vertical** swipe scrolls the
+  page through it (`touch-action: pan-y`): the object spins under the thumb yet the page
+  never traps (honouring "no scroll-lock"). Two-finger keeps full pitch+spin; outside the
+  canvas everything scrolls.
+- **A thumbed scrubber on touch.** Desktop keeps the minimal invisible-range-over-a-2px-
+  bar (the cursor is its whole affordance). Touch gets a **visible draggable thumb** on
+  the fill edge, a **~44px hit area** (the visible bar stays slim), and
+  **tap-anywhere-to-seek** — still numeral-free, still "dragging cancels autoplay but
+  never locks scrolling".
 
 ### Proof cards (card anatomy)
 
@@ -693,6 +742,76 @@ it reads as obsessive detail, not a circus:
   intentional regression, not an afterthought); coarse/touch pointers get tap/focus
   reactions, not hover. The balance to hold *simultaneously*: the 5-second hook,
   instant LCP, steady FPS, and the reduced-motion fallback.
+
+### Mobile-native input (gyro · pen · haptics)
+
+The phone is treated as **more feedback channels for the same one physics**, never a new
+playground — each capability *translates an existing desktop reaction to its native phone
+equivalent*, subtly, and degrades to nothing. Use the sensors to *enhance feedback*, not
+to take over. (Decided 2026-06-27.)
+
+- **Gyro tilt → field parallax.** The hero's pointer parallax (`--mx`/`--my`) was
+  *skipped entirely* on coarse pointers (no mouse). On the phone, **device tilt drives it
+  instead**: `gamma`/`beta` map to the same two vars, calibrated to the orientation at
+  first read, low-pass smoothed, clamped to a small range (a *subtle sway*, not a ride).
+  Android starts it silently; iOS requires `DeviceOrientationEvent.requestPermission()`
+  from a gesture, so it is requested on the hero's **existing first tap-to-light** — no
+  extra chrome, the tap still lights its vessel. Denied / unavailable → the field simply
+  rests. `prefers-reduced-motion` → off (the law holds).
+- **Pen hover = mouse hover.** The "coarse/touch get tap/focus, not hover" rule above is
+  **refined**: a hovering stylus (`pointerType: "pen"`, `pressure: 0` — Apple Pencil
+  *and* Samsung S Pen) routes to the same light-the-vessel path a mouse hover uses, while
+  finger `"touch"` stays tap. The split is made on the **pointer type**, not by
+  re-enabling CSS `:hover` (which would resurrect the touch sticky-hover glitch the
+  coarse gating exists to kill).
+- **Snap haptic, where the platform allows.** A center-focus snap fires
+  `navigator.vibrate()` as **pure progressive enhancement** — Android buzzes; iOS Safari
+  has no Web Vibration API, so the iPhone silently no-ops (no fragile `<input switch>`
+  hack). The visual settle is the feedback everyone gets; the buzz is a bonus where
+  supported. The **same channel** fires one soft buzz at the attractor's
+  **convergence peak** (the "one loud answer" beat) — the buzz tracks the spectacle's
+  single loudest moment, never a steady rumble.
+
+### System & network signals (the user/device asking us to be plainer)
+
+Beyond *attention* (pointer/focus/scroll) and *sensors* (above), the platform exposes
+**preference and condition signals** — the user's accessibility settings and the network's
+state — that are themselves feedback channels: they ask the site to spend less, and the
+respectful law says obey. The glass-and-spectacle language has the most to give back here.
+(Decided 2026-06-27.)
+
+- **`prefers-reduced-transparency` / `prefers-contrast: more`.** The whole visual
+  language is CSS glass (rim light, gloss, specular, translucency). iOS "Reduce
+  Transparency" and "Increase Contrast" (Safari 17+, Chrome 118+) are the user explicitly
+  saying the glass hurts. We honor them as a sibling of `prefers-reduced-motion`: glass
+  collapses to **solid frames**, contrast lifts. Cross-platform, not mobile-only.
+- **Save-Data / `prefers-reduced-data` / slow `effectiveType`.** The attractor is the one
+  ~6.8 MB WebGL spend. When the network (or the user's data-saver) signals "be cheap," the
+  degradation ladder **defaults straight to the poster/static tier** — the network is the
+  top rung of the same full → static → poster ladder. Android-leaning (iOS Low Data Mode
+  doesn't reliably expose `saveData` to the web), so it's a progressive win, not universal.
+
+### Contact form input (keyboard + soft-keyboard)
+
+The `ContactDoor` is the one true input surface, so it earns full native-idiomatic input
+on **both** platforms — the desktop counterpart to the phone's sensors. (Decided
+2026-06-27.)
+
+- **Web: `Cmd`/`Ctrl`+`Enter` sends.** The power-user submit convention; the form is also
+  keyboard-complete (`Escape` closes the door and returns focus to the trigger; focus moves
+  into the door on open). Mouse and Enter-in-a-field still work as before.
+- **Mobile: the soft keyboard never covers the field.** When the on-screen keyboard opens,
+  the focused field is kept above it via the **VisualViewport API** / `env(keyboard-inset-*)`,
+  so the contact flow is never typing-blind behind the keyboard.
+- **Click-to-copy email, with feedback.** The contact email is click/tap-to-copy
+  (Clipboard API) with a brief "copied" confirmation under the earned-feedback law (a quiet
+  visual settle; the snap-haptic channel where supported) — the fast path for someone who'd
+  rather paste into their own client than open the door.
+
+*Deferred (future, only if they fall out cheaply): arrow-key roving navigation of the
+proof grid (Tab already works), and `navigator.share()` on mobile / copy-link on desktop
+for a single project. Consciously rejected: command palette, easter eggs, custom
+context menus — they read as "trying too hard" to this audience.*
 
 ### Glass
 
