@@ -190,6 +190,25 @@
   max-height: calc(90svh - 5rem);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-block: 1rem;
+}
+
+/* ---------- mobile: clear of the soft keyboard ----------
+   While the on-screen keyboard is up, the component flags the door with
+   data-keyboard="open" and publishes the keyboard's overlap as --keyboard-inset
+   (both measured from the VisualViewport API). Centring a growing card is right
+   when the foot is the whole screen, but with the keyboard covering the lower
+   half a centred card's foot — message field, Send — would sit behind it. So we
+   stop centring and pin the card to the top of the stage, then cap the
+   scrollable form to the band the keyboard leaves, so every field can scroll
+   into the clear above it. Untouched on desktop and on any open where the
+   keyboard never appears (the inset stays 0 and the flag is absent). */
+.stage:has(.door[data-keyboard="open"]) {
+  place-items: start center;
+}
+
+.door[data-keyboard="open"][open] .panel {
+  max-height: calc(100svh - var(--keyboard-inset, 0px) - 7rem);
 }
 
 .form {

@@ -237,7 +237,14 @@ export function ContactDoor() {
     wasOpen.current = open;
   }, [open]);
 
-  // Click-outside and Escape close the open card and reset the form.
+  // While the card is open, the document owns two keyboard shortcuts: Escape
+  // closes it (restoring focus to the trigger), and Cmd/Ctrl+Enter sends from
+  // any field — including the multi-line message, where a bare Enter inserts a
+  // newline rather than submitting. The submit goes through requestSubmit() (not
+  // submit()) so it fires the same submit event and native field validation as
+  // the Send button, and submit() self-guards against a send already in flight
+  // or Turnstile still verifying, so a held shortcut can never double-post.
+  // Click-outside also closes (and resets) the card.
   useEffect(() => {
     if (!open) {
       return;
@@ -253,6 +260,11 @@ export function ContactDoor() {
       if (event.key === "Escape") {
         restoreFocus.current = true;
         setDoor(false, resetForm);
+        return;
+      }
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        formRef.current?.requestSubmit();
       }
     };
     document.addEventListener("pointerdown", onPointerDown);
@@ -262,6 +274,57 @@ export function ContactDoor() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open, setDoor, resetForm]);
+
+  // Soft keyboard (mobile). The on-screen keyboard overlays the page without
+  // resizing the layout viewport, so a field low in the card can end up
+  // typing-blind behind it. We read the overlap from the VisualViewport API and
+  // publish it on the door as the --keyboard-inset length plus a data-keyboard
+  // flag; the stylesheet uses them to pin the card to the top and cap the
+  // scrollable form to the band above the keyboard. We then keep whichever field
+  // is focused scrolled into that band — both as the keyboard opens and as focus
+  // tabs between fields while it is up. Inert on desktop and on engines without
+  // VisualViewport: the inset stays 0 and the centred layout is untouched.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const el = doorRef.current;
+    if (!(open && viewport && el)) {
+      return;
+    }
+    const scrollActiveIntoView = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && el.contains(active)) {
+        active.scrollIntoView({ block: "nearest" });
+      }
+    };
+    const sync = () => {
+      const overlap = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop
+      );
+      if (overlap > 0) {
+        el.dataset.keyboard = "open";
+        el.style.setProperty("--keyboard-inset", `${overlap}px`);
+        scrollActiveIntoView();
+      } else {
+        el.removeAttribute("data-keyboard");
+        el.style.removeProperty("--keyboard-inset");
+      }
+    };
+    const onFocusIn = () => {
+      if (el.dataset.keyboard === "open") {
+        scrollActiveIntoView();
+      }
+    };
+    sync();
+    viewport.addEventListener("resize", sync);
+    el.addEventListener("focusin", onFocusIn);
+    return () => {
+      viewport.removeEventListener("resize", sync);
+      el.removeEventListener("focusin", onFocusIn);
+      el.removeAttribute("data-keyboard");
+      el.style.removeProperty("--keyboard-inset");
+    };
+  }, [open]);
 
   // The form (and so the Turnstile container) is mounted whenever the door has
   // been opened and we are not showing the post-send confirmation.
@@ -320,8 +383,13 @@ export function ContactDoor() {
 
   const submit = async (form: HTMLFormElement) => {
     const data = new FormData(form);
-    // Should be unreachable — Send is disabled until the token lands — but guard
-    // so no path can post the null token that silently fails Turnstile (403).
+    // Guard the keyboard path (Cmd/Ctrl+Enter bypasses the disabled button): a
+    // send already in flight is left alone, and a null Turnstile token is never
+    // posted — Send is disabled until it lands, but the shortcut isn't. Either
+    // would otherwise slip a duplicate or a 403 through.
+    if (status === "sending") {
+      return;
+    }
     if (TURNSTILE_SITE_KEY && token === "") {
       return;
     }
