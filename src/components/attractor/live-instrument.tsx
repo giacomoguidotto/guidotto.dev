@@ -5,17 +5,22 @@
 // It owns the degradation ladder and the lazy-load discipline:
 //   - it detects capability (prefers-reduced-motion, WebGL support) up front and
 //     keeps listening for reduced-motion changes;
-//   - for a motion-welcome, capable visitor it loads the showpiece asset +
-//     precomputes the trajectories only once the finale scrolls into view (an
-//     IntersectionObserver gates `loadFinaleData`), so neither the 6.8 MB asset
+//   - it reads the network/data signal as the TOP rung of the ladder — Save-Data,
+//     `prefers-reduced-data`, or a browser-classified slow connection (see
+//     data-saver.ts). When the user/network asks us to be cheap it takes the
+//     poster floor alongside reduced motion: no 6.8 MB fetch, no scene;
+//   - for a motion-welcome, capable, unconstrained visitor it loads the showpiece
+//     asset + precomputes the trajectories only once the finale scrolls into view
+//     (an IntersectionObserver gates `loadFinaleData`), so neither the 6.8 MB asset
 //     nor — via the ssr:false dynamic import below — three.js ever enters the
 //     initial HTML / critical JS budget;
 //   - it picks the tier:
 //       full     — the R3F scene (capable + motion-welcome);
 //       static   — the data-driven 2D butterfly (no WebGL, motion fine), or the
 //                  drop-target if the live scene throws (a React error);
-//       poster   — the baked still <img> (reduced motion, or a failed asset load):
-//                  the true floor, which fetches/computes nothing and never a hole.
+//       poster   — the baked still <img> (reduced motion, a constrained network,
+//                  or a failed asset load): the true floor, which fetches/computes
+//                  nothing and never a hole.
 //   - while the finale is off-screen it pauses the scene's frame loop, so the
 //     perpetual comet/bloom never burns frames the visitor cannot see;
 //   - a LOST WebGL context (the browser reclaims an off-screen canvas's GPU
@@ -38,6 +43,11 @@ import {
 import { content } from "~/content";
 import styles from "./attractor.module.css";
 import { createController, type FinaleController } from "./controller";
+import {
+  getNetworkInformation,
+  isDataConstrained,
+  REDUCED_DATA_QUERY,
+} from "./data-saver";
 import { type FinaleData, loadFinaleData } from "./finale-data";
 import { Hud } from "./hud";
 import { Scrubber } from "./scrubber";
@@ -126,6 +136,10 @@ export function LiveInstrument() {
   const controllerRef = useRef<FinaleController | null>(null);
   const started = useRef(false);
   const [reduced, setReduced] = useState(false);
+  // Whether a network/data signal asks us to be cheap (Save-Data, reduced-data, or
+  // a slow effectiveType). The top rung of the ladder: like reduced motion it takes
+  // the poster floor, so the 6.8 MB asset is never fetched and no scene mounts.
+  const [constrained, setConstrained] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [mode, setMode] = useState<Mode>("full");
   // Whether the scene should render frames — false while the finale is off-screen.
@@ -151,9 +165,33 @@ export function LiveInstrument() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Load + visibility. Reduced motion takes the poster floor (no fetch, no three).
+  // Network/data signal, kept live (a data-saver toggle or a connection change can
+  // flip it mid-session). Read before the IntersectionObserver below ever fires the
+  // load, so a constrained client never pays the 6.8 MB / WebGL spend.
   useEffect(() => {
-    if (reduced) {
+    const mq = window.matchMedia(REDUCED_DATA_QUERY);
+    const connection = getNetworkInformation();
+    const evaluate = () =>
+      setConstrained(
+        isDataConstrained({
+          reducedData: mq.matches,
+          saveData: connection?.saveData,
+          effectiveType: connection?.effectiveType,
+        })
+      );
+    evaluate();
+    mq.addEventListener("change", evaluate);
+    connection?.addEventListener("change", evaluate);
+    return () => {
+      mq.removeEventListener("change", evaluate);
+      connection?.removeEventListener("change", evaluate);
+    };
+  }, []);
+
+  // Load + visibility. The poster floor (reduced motion OR a constrained network)
+  // fetches nothing and mounts no three.
+  useEffect(() => {
+    if (reduced || constrained) {
       return;
     }
     const webgl = webglAvailable();
@@ -202,7 +240,7 @@ export function LiveInstrument() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [reduced]);
+  }, [reduced, constrained]);
 
   const failToStatic = useCallback(() => {
     if (controllerRef.current) {
@@ -239,15 +277,18 @@ export function LiveInstrument() {
   const data = dataRef.current;
   const controller = controllerRef.current;
   const ready = status === "ready" && data && controller;
+  // The poster floor: reduced motion or a constrained network. Both fetch nothing
+  // and mount no scene — the asset request and three.js never happen.
+  const posterFloor = reduced || constrained;
 
   return (
     <div className={styles.live} ref={rootRef}>
-      {reduced && <PosterStill />}
-      {!reduced && status === "failed" && <PosterStill />}
-      {!reduced && status === "loading" && (
+      {posterFloor && <PosterStill />}
+      {!posterFloor && status === "failed" && <PosterStill />}
+      {!posterFloor && status === "loading" && (
         <div aria-hidden="true" className={styles.loading} />
       )}
-      {!reduced && ready && (
+      {!posterFloor && ready && (
         <>
           <div className={styles.canvas}>
             {mode === "full" ? (
