@@ -283,125 +283,36 @@
   top: 0;
 }
 
-/* ---- the mobile portrait contact sheet (#27 C.2) ---- */
+/* ---- the mobile portrait morph (#27 C.3) ---- */
 
-/* The portrait twin of the hero, re-authored as a tall first screen in the TILE
-   path (<MobileContactSheet />). It reuses the pin's chrome layers (.tint, .grain,
-   .vignette, .copy, .baton) with the SAME z-order, so when C.3 grows the morph in
-   this sheet becomes the pin with no re-layering. No morph yet: the three vessels
-   sit at their portrait scatter via CSS and only light on tap / hover; the page-flow
-   carousel (Part B) follows below in normal flow. Mounted only on motion-welcome
-   <= 40rem viewports, so the portrait re-author of the shared .vitrine__copy /
-   .thesis (globals.css @media max-width: 640px) is always the active layout here. */
-.sheet {
-  position: relative;
-  min-height: 100svh;
-  overflow: hidden;
-  color: var(--ivory);
-  /* the shared cool near-black-blue field of the hero, grid, and pin */
-  background: radial-gradient(
-    130% 105% at 50% 16%,
-    var(--stage-1) 0%,
-    var(--stage-2) 52%,
-    var(--stage-3) 100%
-  );
-  isolation: isolate;
-}
+/* MobileMotionStage is the PORTRAIT TWIN of the desktop morph: it reuses the desktop
+   scene classes wholesale (.stage / .pin / .gridStick / .vitrine / .tint / .grain /
+   .vignette / .copy / .baton / .snap) — the contact sheet IS the pin, the page-flow
+   carousel IS the pulled-up sticky grid — and only adds the `.mobile` modifier below.
+   The single-column carousel layout + the per-card centre snap come from the proof
+   grid's own mobile CSS (proof-grid.module.css @media max-width: 40rem). C.2's
+   standalone .sheet / .vessels / .case block is gone: the three vessels are now one
+   DOM node each, rigged by the stage, exactly as the desktop peers are their cells. */
 
-/* the scatter layer that hosts the three absolutely-placed vessels (it takes the
-   pointer over the gaps so moving onto empty field releases the lit vessel on a
-   fine pointer). It sits above the grain and below the vignette + thesis, exactly
-   like the desktop showpiece's vitrine layer. */
-.vessels {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-}
+/* The morph carousel + showpiece tiles: the JS rig owns transform + opacity per scroll
+   frame, so neutralise the proof card's mobile CAROUSEL RECEDE (the scale .88 / dim-to-
+   0.5 the #27 observer toggles) AND every eased transition ON THE TILE. Two reasons the
+   transition must be off here: the per-frame FLIP must never lag the scroll, and
+   measure() clears each tile's transform to read its true card box — with a live
+   transition that clear would be caught mid-animation and report a wrong home (the
+   desktop `.ready`-drop, earned for free by killing the transition outright). The rig's
+   inline transform/opacity win over `none`/`1` for Orray + Tempo + the showpiece; the
+   static cards (Scry + Ginevra) simply sit full-size and clear (their loud recede is the
+   #27 observer's job in C.4). The second selector outranks `.ready .tile[data-phase=
+   "rest"]` so the at-rest hover ease can't sneak the transition back in.
 
-/* one vessel, top-left-anchored at its portrait scatter point (--mob-*). The tile
-   inside fills the square; its caption never shows here (the contact sheet is a
-   display case, not cards — the caption grows in the carousel below / the C.3 morph).
-   Depth + lit looks mirror the hero's per-depth recede and earn-colour-on-light. */
-.case {
-  position: absolute;
-  top: var(--mob-y);
-  left: var(--mob-x);
-  width: var(--mob-w);
-  aspect-ratio: 1;
-  transition:
-    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.55s ease;
-}
-
-/* the tile takes the pointer in the contact sheet (the base .tile is
-   pointer-events:none for the morph's flight phase; at rest here it must light), and
-   never navigates (no href until C.3 resolves a card). */
-.sheet .tile {
-  pointer-events: auto;
-  cursor: default;
-}
-
-/* a display case, not cards: the resolved caption is hidden here. */
-.sheet [data-caption] {
-  display: none;
-}
-
-/* depth-of-field: far vessels recede (opacity) and blur, near vessels sit forward —
-   the hero's own per-depth values. The poster wears the blur (the hero's filter on
-   the content, not a backdrop veil); the tile already hints will-change: filter. */
-.case[data-depth="1"] {
-  opacity: 0.9;
-}
-
-.case[data-depth="2"] {
-  opacity: 0.74;
-}
-
-.case[data-depth="3"] {
-  opacity: 0.52;
-}
-
-.sheet .case [data-poster] {
-  transition: filter 0.55s ease;
-}
-
-.case[data-depth="1"] [data-poster] {
-  filter: blur(1.5px);
-}
-
-.case[data-depth="2"] [data-poster] {
-  filter: blur(4px);
-}
-
-.case[data-depth="3"] [data-poster] {
-  filter: blur(8px);
-}
-
-/* a tapped (coarse) / hovered (fine) vessel earns its colour: it rises above the
-   scattered neighbours, clears its depth blur and recede, lifts, and floats its name
-   tag in — the hero's lit read, in the tile path. The accent bloom / glass / sweep
-   come for free from the proof-card [data-active] look the tile already carries. */
-.case[data-active="true"] {
-  z-index: 5;
-  opacity: 1;
-}
-
-.case[data-active="true"] [data-poster] {
-  filter: none;
-}
-
-.sheet .case .tile {
-  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.case[data-active="true"] .tile {
-  transform: translateY(-0.4rem);
-}
-
-.sheet .restTag {
-  transition: opacity 0.4s ease;
-}
-
-.case[data-active="true"] .restTag {
-  opacity: 0.95;
+   max-width / margin-inline (the proof card's mobile sizing) are deliberately KEPT, so
+   the rig measures the same card box the resolved carousel uses. */
+@media (max-width: 40rem) {
+  .mobile .tile,
+  .mobile.ready .tile[data-phase="rest"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
