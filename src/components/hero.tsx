@@ -29,7 +29,11 @@ import {
   GlassVessel,
   type PlaneSubject,
 } from "~/components/showcase/glass-vessel";
-import { ShowcaseRoot, useAccent } from "~/components/showcase/showcase-root";
+import {
+  ShowcaseRoot,
+  useAccent,
+  useTilt,
+} from "~/components/showcase/showcase-root";
 import { content } from "~/content";
 
 /** Center position + a fixed width inside the field. The position is the
@@ -149,6 +153,7 @@ export function Hero() {
 // vessels dismisses.
 function VitrineStage() {
   const accent = useAccent();
+  const tilt = useTilt();
   const [coarse, setCoarse] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
@@ -195,7 +200,18 @@ function VitrineStage() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [coarse, activeKey]);
 
-  const activate = useCallback((key: string) => setActiveKey(key), []);
+  // The tap-to-light gesture doubles as the iOS gyro permission piggyback: the
+  // first tap that lights a vessel also asks for DeviceOrientation access, so
+  // device-tilt parallax can take over the field thereafter — no extra chrome,
+  // the tap still lights its vessel. `enable()` is idempotent and a no-op on fine
+  // pointers / platforms with no gesture gate (see showcase-root / gyro-tilt).
+  const activate = useCallback(
+    (key: string) => {
+      tilt.enable();
+      setActiveKey(key);
+    },
+    [tilt]
+  );
   const release = useCallback(() => setActiveKey(null), []);
 
   return (
