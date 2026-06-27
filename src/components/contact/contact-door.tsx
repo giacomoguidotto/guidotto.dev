@@ -33,6 +33,7 @@ import {
 } from "react";
 import { content } from "~/content";
 import styles from "./contact-door.module.css";
+import { CopyEmail } from "./copy-email";
 import { GitHubMark, LinkedInMark, XMark } from "./social-icons";
 
 const { cta } = content;
@@ -486,6 +487,8 @@ export function ContactDoor() {
             )}
           </div>
         </details>
+
+        <CopyEmail />
 
         <QuietRail />
       </section>
