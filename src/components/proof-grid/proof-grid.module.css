@@ -3,8 +3,9 @@
    Co-located module CSS, kept OUT of globals.css so this Wave-1 slice owns its
    own surface and never merge-conflicts with the parallel hero slice. It only
    READS the global design tokens (the glass tokens --glass-rim / --glass-gloss /
-   --glass-specular / --glass-inner-shadow, the stage tokens --stage-*, the warm
-   --ivory, and the earned-color --accent / --live-accent); it never edits them.
+   --glass-specular / --glass-inner-shadow / --glass-border, the stage tokens
+   --stage-*, the warm --ivory, and the earned-color --accent / --live-accent); it
+   never edits them.
 
    The glass framing here replicates GlassVessel's layers (rim light, gloss
    sweep, specular, inner shadow) rather than composing it, because a proof card
@@ -247,7 +248,7 @@
   background:
     linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
     radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
-  border: 1px solid color-mix(in oklch, white 15%, transparent);
+  border: 1px solid var(--glass-border);
   border-radius: inherit;
   box-shadow:
     inset 0 1px 1px var(--glass-specular),
@@ -391,5 +392,23 @@
   .onFocus {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* glass -> solid frame (prefers-reduced-transparency / prefers-contrast): the glass
+   wash + frame collapse centrally via the :root token override in globals.css; here
+   the card lifts its own caption type contrast to match (a sibling of the reduced-
+   motion block above). Only color changes, so no layout shift. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .label {
+    color: color-mix(in oklch, var(--ivory) 78%, transparent);
+  }
+
+  .atRest {
+    color: var(--ivory);
+  }
+
+  .onFocus {
+    color: color-mix(in oklch, var(--ivory) 92%, transparent);
   }
 }

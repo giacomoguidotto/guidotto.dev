@@ -437,7 +437,7 @@
   background:
     linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
     radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
-  border: 1px solid color-mix(in oklch, white 12%, transparent);
+  border: 1px solid var(--glass-border);
   border-radius: inherit;
   box-shadow:
     inset 0 1px 1px var(--glass-specular),
@@ -548,5 +548,29 @@
 
   .knobDot {
     transition: none;
+  }
+}
+
+/* glass -> solid frame (prefers-reduced-transparency / prefers-contrast): the parked
+   AnyPINN vessel's glass collapses centrally via the :root token override in
+   globals.css. Here the showpiece lifts its own frame + surrounding type contrast to
+   match (a sibling of the reduced-motion block above): the instrument stage gets a
+   solid, opaque boundary instead of its faint 9%-ivory hairline, and the caption /
+   footline / eyebrow run at full strength. Color-only, so no layout shift. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .instrument {
+    border-color: color-mix(in oklch, var(--ivory) 60%, transparent);
+  }
+
+  .eyebrow {
+    opacity: 1;
+  }
+
+  .caption {
+    color: var(--ivory);
+  }
+
+  .footline {
+    color: color-mix(in oklch, var(--ivory) 78%, transparent);
   }
 }

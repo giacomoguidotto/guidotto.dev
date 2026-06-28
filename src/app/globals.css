@@ -33,6 +33,12 @@
   --glass-gloss: oklch(1 0 0 / 0.2);
   --glass-specular: oklch(1 0 0 / 0.3);
   --glass-inner-shadow: oklch(0 0 0 / 0.5);
+  /* The frame line of every glass surface, decoupled from the rim wash so the two
+     can diverge: when the user asks us to drop the glass (prefers-reduced-
+     transparency / prefers-contrast, below) the washes null to transparent while
+     this border lifts to a solid, opaque frame. Every glass surface reads it, so
+     the collapse is defined once. */
+  --glass-border: color-mix(in oklch, white 15%, transparent);
 
   /* Subtle film grain (the analog warmth, applied over the field). */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -356,7 +362,7 @@ body {
   background:
     linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
     radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
-  border: 1px solid color-mix(in oklch, white 15%, transparent);
+  border: 1px solid var(--glass-border);
   border-radius: inherit;
   box-shadow:
     inset 0 1px 1px var(--glass-specular),
@@ -577,6 +583,39 @@ body {
   .field__tint {
     transition: none;
     animation: none;
+  }
+}
+
+/* ---------- glass -> solid: prefers-reduced-transparency / prefers-contrast ----
+   A sibling of reduced-motion (CONTEXT.md -> "System & network signals"): the whole
+   visual language is CSS glass, so iOS "Reduce Transparency" / "Increase Contrast"
+   (and their cross-platform equivalents) are the user explicitly asking us to drop
+   it. We honor them by collapsing the glass to SOLID FRAMES — the wash tokens (rim,
+   gloss, specular, inner shadow) null to transparent, which removes the translucency
+   / gloss / specular / inner shadow from every glass surface that reads them at once
+   (the hero vessels, the proof cards + the morph tile, the finale parked vessel, the
+   portrait frame, the contact door), while the shared frame border lifts to a solid,
+   opaque, higher-contrast line. Defined once on :root so the override is centralized
+   and there is no per-surface duplication. Only colors / shadows change — the 1px
+   border width is unchanged — so there is no layout shift. Each glass module lifts
+   its own surrounding type contrast in a matching block. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --glass-rim: transparent;
+    --glass-gloss: transparent;
+    --glass-specular: transparent;
+    --glass-inner-shadow: transparent;
+    --glass-border: color-mix(in oklch, var(--ivory) 76%, var(--stage-deep));
+  }
+
+  /* the hero's own surrounding type (the thesis already runs at full --ivory) */
+  .eyebrow,
+  .subline {
+    opacity: 1;
+  }
+
+  .scroll-baton {
+    color: color-mix(in oklch, var(--ivory) 85%, transparent);
   }
 }
 

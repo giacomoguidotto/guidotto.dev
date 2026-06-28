@@ -5,7 +5,7 @@
    own surface and never merge-conflicts with the parallel slices. It only READS
    the global design tokens (the warm --ivory, the cool --stage-* field, and the
    glass tokens --glass-rim / --glass-gloss / --glass-specular /
-   --glass-inner-shadow); it never edits them.
+   --glass-inner-shadow / --glass-border); it never edits them.
 
    This is denouement, not a third act: the page has already spent its two
    tentpoles (the breadth hero, the depth showpiece). So there is NO autonomous
@@ -197,7 +197,7 @@
   background:
     linear-gradient(150deg, var(--glass-rim) 0%, transparent 32%),
     radial-gradient(120% 80% at 28% 12%, var(--glass-gloss) 0%, transparent 46%);
-  border: 1px solid color-mix(in oklch, white 14%, transparent);
+  border: 1px solid var(--glass-border);
   border-radius: inherit;
   box-shadow:
     inset 0 1px 1px var(--glass-specular),
@@ -292,5 +292,23 @@
 
   .signature {
     margin-inline: auto;
+  }
+}
+
+/* glass -> solid frame (prefers-reduced-transparency / prefers-contrast): the
+   portrait's glass frame collapses centrally via the :root token override in
+   globals.css; here the close lifts its own surrounding type contrast to match (a
+   sibling of the page's reduced-motion handling). Color-only, so no layout shift. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .missionLabel {
+    color: color-mix(in oklch, var(--ivory) 78%, transparent);
+  }
+
+  .missionParagraph {
+    color: var(--ivory);
+  }
+
+  .elaboration {
+    color: color-mix(in oklch, var(--ivory) 90%, transparent);
   }
 }

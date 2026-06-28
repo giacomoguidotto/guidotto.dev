@@ -3,7 +3,7 @@
    Co-located module CSS, kept OUT of globals.css so this slice owns its own
    surface and never merge-conflicts with the parallel hero / proof-grid slices.
    It only READS the global design tokens (the stage tokens --stage-*, the warm
-   --ivory, the glass rim --glass-rim, the mono/display fonts); it never edits
+   --ivory, the glass frame --glass-border, the mono/display fonts); it never edits
    them.
 
    The door is a native <details>/<summary>: it opens with no JS. With JS it is
@@ -82,7 +82,7 @@
 .door[open] {
   width: 100%;
   background: color-mix(in oklch, var(--stage-1) 72%, transparent);
-  border-color: var(--glass-rim);
+  border-color: var(--glass-border);
   border-radius: 16px;
   /* raised: the card lifts on a layered shadow instead of dimming the page,
      so the space around it reads as "click out here to close". */
