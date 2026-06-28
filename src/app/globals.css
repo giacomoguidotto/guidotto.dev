@@ -675,6 +675,23 @@ body {
   }
 }
 
+/* The closed CTA pill's loud-glass specular origin (pairs with
+   contact-door.module.css). Registered so the hotspot INTERPOLATES toward the
+   cursor and eases home on leave — an unregistered custom property would jump.
+   The defaults are the rest origin the highlight returns to when no pointer is
+   tracking (touch, the open card, reduced motion, or pointer-left). */
+@property --door-mx {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 28%;
+}
+
+@property --door-my {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 12%;
+}
+
 /* ---------- contact door morph (pairs with contact-door.module.css) ----------
    The View Transitions API drives the pill -> raised-card morph and the
    "Get in touch" label's glide from centre to corner. These ::view-transition

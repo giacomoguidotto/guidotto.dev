@@ -60,8 +60,23 @@
 /* the .door element is the surface that morphs. Closed, it shrink-wraps the
    summary into the single loud pill CTA; open, it grows to a raised card. The
    border / background / radius all live here so the View Transition has one
-   element to interpolate. */
+   element to interpolate.
+
+   This is the page's one LOUD glass (the calm .glass-frame elsewhere is the
+   quiet register): a real frosted surface — backdrop-filter blurs and saturates
+   the cool bloom rising behind it — carrying a cursor-tracked specular highlight
+   (the .door::before below) lit in --door-lit, the same blue as the stage bloom,
+   so the CTA reads as a slab of lit glass rather than a tinted band. The frost is
+   pure CSS, so it stands with no JS; engines without backdrop-filter keep the
+   plain wash, and reduced-transparency / contrast collapse it to a solid pill at
+   the foot of this file. --door-mx / --door-my are the specular origin (registered
+   as @property in globals.css so they interpolate); they default to the rest
+   origin and the pointer effect publishes the live cursor onto them. */
 .door {
+  --door-lit: oklch(0.72 0.13 256);
+  --door-mx: 28%;
+  --door-my: 12%;
+
   position: relative;
   width: fit-content;
   max-width: 100%;
@@ -69,10 +84,38 @@
   background: color-mix(in oklch, var(--ivory) 6%, transparent);
   border: 1px solid color-mix(in oklch, var(--ivory) 38%, transparent);
   border-radius: 999px;
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
   transition:
     border-color 0.4s ease,
     background 0.4s ease,
-    box-shadow 0.4s ease;
+    box-shadow 0.4s ease,
+    transform 0.18s ease,
+    --door-mx 0.16s ease-out,
+    --door-my 0.16s ease-out;
+}
+
+/* the cursor-tracked specular. inset over the frosted surface, below the content
+   (the label / form sit at z-index 1), and captured INSIDE the contact-door view
+   transition group — it is a child of the morphing .door, so it glides with the
+   pill->card morph rather than animating as a detached layer. Rests as a soft
+   top-left sheen; on a fine pointer it slides to the cursor. Suppressed once the
+   card is open, where the form, not the gloss, is the subject. */
+.door::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(
+    132px 96px at var(--door-mx) var(--door-my),
+    color-mix(in oklch, white 42%, transparent) 0%,
+    color-mix(in oklch, white 9%, transparent) 38%,
+    transparent 72%
+  );
+  border-radius: inherit;
+  opacity: 0.9;
+  transition: opacity 0.4s ease;
 }
 
 .morph {
@@ -95,6 +138,8 @@
 /* the clickable header. Closed it is the pill interior (centred); open it
    becomes the card's top row with the label pinned to the start. */
 .summary {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 0.6rem;
   align-items: center;
@@ -116,9 +161,41 @@
   color: color-mix(in oklch, var(--ivory) 100%, transparent);
 }
 
+/* hover lifts the wash and rings the pill in the bloom's own cool light, so the
+   loud glass looks lit from within rather than merely outlined; the specular
+   also rises to full. */
 .door:not([open]):hover {
   background: color-mix(in oklch, var(--ivory) 10%, transparent);
-  border-color: color-mix(in oklch, var(--ivory) 62%, transparent);
+  border-color: color-mix(in oklch, var(--door-lit) 55%, var(--ivory));
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklch, white 22%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--door-lit) 22%, transparent),
+    0 10px 34px -14px color-mix(in oklch, var(--door-lit) 60%, transparent);
+}
+
+.door:not([open]):hover::before {
+  opacity: 1;
+}
+
+/* press: the slab sinks a touch and a brighter caustic flares under the cursor,
+   tinted with the bloom's blue — the tactile "give" of pressing real glass. */
+.door:not([open]):active {
+  transform: scale(0.972);
+}
+
+.door:not([open]):active::before {
+  background: radial-gradient(
+    168px 122px at var(--door-mx) var(--door-my),
+    color-mix(in oklch, white 72%, transparent) 0%,
+    color-mix(in oklch, var(--door-lit) 32%, transparent) 42%,
+    transparent 78%
+  );
+  opacity: 1;
+}
+
+/* open, the form is the subject: the cursor-tracked sheen steps aside. */
+.door[open]::before {
+  opacity: 0;
 }
 
 .summary:focus-visible {
@@ -175,6 +252,8 @@
 /* ---------- the revealed form frame ---------- */
 
 .panel {
+  position: relative;
+  z-index: 1;
   padding: 0 1.7rem 1.7rem;
   text-align: left;
 }
@@ -430,5 +509,41 @@
 
   .send:hover {
     transform: none;
+  }
+
+  /* the loud pill's press-sink is motion too: hold it flat. */
+  .door:not([open]):active {
+    transform: none;
+  }
+}
+
+/* ---------- glass -> solid: prefers-reduced-transparency / prefers-contrast ----
+   The door is the page's one LOUD glass and carries its own translucency (the
+   frosted wash + the cursor-tracked specular), so unlike the calm .glass-frame
+   surfaces it cannot ride the token collapse on :root in globals.css — it has to
+   drop its own frost. We honor the same signal here: strip the backdrop-filter
+   and the specular, lift the wash to an opaque pill, and raise the borders to the
+   solid, higher-contrast line (the open card's --glass-border is already lifted
+   globally). Only colors / filters change — the 1px borders and the box are
+   untouched — so there is no layout shift and the morph still runs. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .door {
+    background: color-mix(in oklch, var(--ivory) 14%, var(--stage-deep));
+    border-color: color-mix(in oklch, var(--ivory) 70%, var(--stage-deep));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .door::before {
+    display: none;
+  }
+
+  .door:not([open]):hover {
+    background: color-mix(in oklch, var(--ivory) 22%, var(--stage-deep));
+    box-shadow: none;
+  }
+
+  .door[open] {
+    background: var(--stage-1);
   }
 }

@@ -226,6 +226,63 @@ export function ContactDoor() {
     }
   };
 
+  // Loud-glass specular. On a fine pointer with motion welcome, the closed pill's
+  // glassy highlight tracks the cursor: we publish the pointer's position on the
+  // door as --door-mx / --door-my and the stylesheet paints the specular hotspot
+  // there. Writes are rAF-coalesced, so a flood of pointermove events collapses
+  // to one paint per frame — there is no perpetual loop, only work while the
+  // pointer is actually moving over the pill. On leave we drop the props so the
+  // hotspot eases back to its rest origin (the registered @property defaults).
+  // Inert on touch, while the card is open, and under reduced motion (the
+  // highlight simply rests at its default origin).
+  useEffect(() => {
+    const el = doorRef.current;
+    if (!el) {
+      return;
+    }
+    const fine = window.matchMedia("(pointer: fine)").matches;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (!(fine && !reduce)) {
+      return;
+    }
+    let frame = 0;
+    let nextX = 0;
+    let nextY = 0;
+    const write = () => {
+      frame = 0;
+      el.style.setProperty("--door-mx", `${nextX}%`);
+      el.style.setProperty("--door-my", `${nextY}%`);
+    };
+    const onMove = (event: PointerEvent) => {
+      if (el.open) {
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      nextX = ((event.clientX - rect.left) / rect.width) * 100;
+      nextY = ((event.clientY - rect.top) / rect.height) * 100;
+      if (!frame) {
+        frame = requestAnimationFrame(write);
+      }
+    };
+    const clear = () => {
+      if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      el.style.removeProperty("--door-mx");
+      el.style.removeProperty("--door-my");
+    };
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", clear);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", clear);
+      clear();
+    };
+  }, []);
+
   // Open hands focus to the first field; closing returns it to the door, but
   // only when the close was a keyboard dismissal — a pointer click outside
   // leaves focus where the click landed (and so never flashes the pill's ring).
