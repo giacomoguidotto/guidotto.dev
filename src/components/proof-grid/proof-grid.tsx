@@ -30,6 +30,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { content } from "~/content";
+import { haptic } from "~/lib/haptic";
 import { ProofCard } from "./proof-card";
 import styles from "./proof-grid.module.css";
 
@@ -93,10 +94,6 @@ export function ProofGrid() {
     const rootStyle = document.documentElement.style;
     const prevSnapType = rootStyle.scrollSnapType;
     rootStyle.scrollSnapType = "y proximity";
-    // Snap haptic is pure progressive enhancement and is off under reduced motion.
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
     // The last card to settle at centre, so the haptic fires once per NEW settle
     // (not on every observer tick).
     let centeredKey: string | null = null;
@@ -106,11 +103,9 @@ export function ProofGrid() {
         return;
       }
       centeredKey = key;
-      // Snap haptic on a new centre settle: Android buzzes; iOS Safari has no
-      // Vibration API and silently no-ops. Off under reduced motion.
-      if (!reduce && typeof navigator.vibrate === "function") {
-        navigator.vibrate(8);
-      }
+      // Snap haptic on a new centre settle (Android buzzes; silent on iOS; off
+      // under reduced motion — see ~/lib/haptic). Pure progressive enhancement.
+      haptic(8);
     };
     const observer = new IntersectionObserver(
       (entries) => {

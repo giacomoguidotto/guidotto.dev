@@ -66,6 +66,7 @@ import proofStyles from "~/components/proof-grid/proof-grid.module.css";
 import { startGyroTilt } from "~/components/showcase/gyro-tilt";
 import { ShowcaseRoot } from "~/components/showcase/showcase-root";
 import { content, type Project } from "~/content";
+import { haptic } from "~/lib/haptic";
 import { ProjectTile, type TileModel } from "./project-tile";
 import styles from "./stage.module.css";
 
@@ -1172,11 +1173,6 @@ function MobileMotionStage() {
     // per NEW centre (not on every observer tick), and so the release seam can seed it
     // (it lights Orray, so the observer's first Orray tick is a no-op, not a re-buzz).
     let centeredKey: string | null = null;
-    // The snap haptic is pure progressive enhancement and is off under reduced motion
-    // (the mobile morph only ever mounts under no-preference, so this is belt-and-braces).
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
     // Live primary-pointer read: a coarse (touch) pointer taps to light and KEEPS lit;
     // a fine pointer (a narrow desktop window, or a hovering pen) lights on hover. Read
     // from a media query updated in place, so a hybrid device flips without re-running
@@ -1309,9 +1305,7 @@ function MobileMotionStage() {
       const key = el.dataset.key;
       if (key && key !== centeredKey) {
         centeredKey = key;
-        if (!reduce && typeof navigator.vibrate === "function") {
-          navigator.vibrate(8);
-        }
+        haptic(8);
       }
     };
 

@@ -29,6 +29,7 @@ import {
   useRef,
 } from "react";
 import type { Motif } from "~/content";
+import { haptic } from "~/lib/haptic";
 import { isPenHover } from "./pen-hover";
 import { ProjectMedia } from "./project-media";
 
@@ -78,6 +79,11 @@ const SWEEP: Keyframe[] = [
 ];
 const SWEEP_MS = 850;
 
+// A soft confirm buzz on every tap (Android only; silent on iOS; off under
+// reduced motion — see ~/lib/haptic). Short, on the order of the scroll-snap
+// settle, so the vessel feels touched without buzzing like an alert.
+const TAP_BUZZ_MS = 10;
+
 export function GlassVessel({
   subject,
   shape,
@@ -122,12 +128,14 @@ export function GlassVessel({
     }
   };
 
-  // A tap always (re)activates; the coordinator never toggles off. The spring is
-  // a re-tap reward only: the first tap just selects (the CSS activation handles
-  // its bloom + sweep), so we only play the press + replay the gloss when this
-  // vessel is already the lit one. Reduced-motion skips the motion entirely.
+  // A tap always (re)activates and always gives a soft confirm buzz; the
+  // coordinator never toggles off. The spring is a re-tap reward only: the first
+  // tap just selects (the CSS activation handles its bloom + sweep), so we only
+  // play the press + replay the gloss when this vessel is already the lit one.
+  // Reduced-motion skips both the buzz (inside haptic) and the motion.
   const handleTap = () => {
     activate();
+    haptic(TAP_BUZZ_MS);
     if (
       !active ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches

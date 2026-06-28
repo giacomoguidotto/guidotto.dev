@@ -48,6 +48,7 @@ import {
   TOUCH,
   type WebGLRenderer,
 } from "three";
+import { haptic } from "~/lib/haptic";
 import styles from "./attractor.module.css";
 import { type FinaleController, snapshotFloat } from "./controller";
 import { type FinaleData, TUBE_SAMPLES } from "./finale-data";
@@ -123,29 +124,14 @@ const DPR_DEFAULT: [number, number] = [1, 1.75];
 // One soft buzz at the convergence peak — the "one loud answer" beat (#30). Android
 // fires it; iOS Safari exposes no Web Vibration API, so the call simply no-ops
 // (silent on iPhone, no fragile fallback). Skipped under reduced motion (the live
-// scene does not even mount in that tier, but guard anyway for a mid-session toggle).
+// scene does not even mount in that tier, but haptic() guards anyway for a
+// mid-session toggle).
 const CONVERGENCE_BUZZ_MS = 15;
 
 function isPhoneViewport(): boolean {
   return (
     typeof window !== "undefined" && window.matchMedia(PHONE_QUERY).matches
   );
-}
-
-function fireConvergenceHaptic(): void {
-  if (
-    typeof navigator === "undefined" ||
-    typeof navigator.vibrate !== "function"
-  ) {
-    return;
-  }
-  if (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    return;
-  }
-  navigator.vibrate(CONVERGENCE_BUZZ_MS);
 }
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
@@ -486,7 +472,7 @@ const SceneContents = memo(function SceneContents({
       // moment (Android only; silent on iOS; off under reduced motion).
       if (hapticArmed.current) {
         hapticArmed.current = false;
-        fireConvergenceHaptic();
+        haptic(CONVERGENCE_BUZZ_MS);
       }
     }
     stepMotes(
