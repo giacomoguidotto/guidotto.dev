@@ -106,6 +106,16 @@ export interface MissionContent {
   readonly lead: string;
 }
 
+export interface NotFoundContent {
+  /** Back-home link label. */
+  readonly cta: string;
+  /** Mono eyebrow (functional chrome, not a tagline). */
+  readonly eyebrow: string;
+  readonly subline: string;
+  /** Fraunces line. */
+  readonly title: string;
+}
+
 export interface HumanContent {
   readonly personalLine: string;
   /** Script signature word (handwritten SVG pending Jack's source picture). */
@@ -136,6 +146,7 @@ export interface Content {
   readonly hero: HeroContent;
   readonly human: HumanContent;
   readonly mission: MissionContent;
+  readonly notFound: NotFoundContent;
   readonly projects: readonly Project[];
   readonly showpiece: ShowpieceContent;
   readonly site: SiteContent;
@@ -266,6 +277,15 @@ export const content: Content = {
     personalLine:
       "I'm Jack. Forever curious, always improving, never quite comfortable, and building something that matters.",
     signature: "Jack",
+  },
+
+  // Functional 404 chrome (its own voice, like the masthead and CTA). No
+  // invented positioning: a plain not-found message and one quiet way home.
+  notFound: {
+    eyebrow: "ERROR 404",
+    title: "This page doesn't exist.",
+    subline: "The page you're looking for isn't here.",
+    cta: "Back home",
   },
 
   cta: {

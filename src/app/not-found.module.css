@@ -1,0 +1,197 @@
+/* not-found (404) — a calm chrome surface on the cool stage.
+
+   Co-located module CSS, kept OUT of globals.css so this page owns its own
+   surface and never merge-conflicts with the home-page slices. It only READS the
+   global design tokens (the stage tokens --stage-*, the warm --ivory, the deep
+   floor --stage-deep, the grain texture --grain, the mono/display fonts); it
+   never edits them.
+
+   The composition mirrors the hero so the page reads as the same site: a mono
+   eyebrow, a Fraunces line, an italic subline, then one quiet pill back home
+   (the contact door's closed-pill recipe). The two system-signal blocks at the
+   foot (reduced-motion, reduced-transparency / increased-contrast) match the
+   rest of the design language. */
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100svh;
+  padding: clamp(2rem, 8vh, 6rem) 1.5rem;
+  overflow: hidden;
+  color: var(--ivory);
+  background: radial-gradient(
+    130% 105% at 50% 16%,
+    var(--stage-1) 0%,
+    var(--stage-2) 52%,
+    var(--stage-3) 100%
+  );
+  isolation: isolate;
+}
+
+/* darken toward the deep floor at the edges (the field's vignette recipe) */
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 105% at 50% 40%,
+      transparent 44%,
+      color-mix(in oklch, var(--stage-deep) 84%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--stage-deep) 45%, transparent) 0%,
+      transparent 22%
+    );
+}
+
+/* subtle film grain (the analog warmth, same as the field) */
+.stage::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background-image: var(--grain);
+  mix-blend-mode: overlay;
+  opacity: 0.11;
+}
+
+.copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  align-items: center;
+  width: min(95vw, 60rem);
+  text-align: center;
+}
+
+/* a soft scrim keeps the centred copy legible over the field */
+.copy::before {
+  position: absolute;
+  inset: -18% -24%;
+  z-index: -1;
+  content: "";
+  background: radial-gradient(
+    60% 58% at 50% 50%,
+    color-mix(in oklch, var(--stage-deep) 62%, transparent) 0%,
+    transparent 72%
+  );
+}
+
+.code {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.62rem, 1vw, 0.74rem);
+  color: var(--ivory);
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  opacity: 0.78;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.7vw, 4.4rem);
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 40,
+    "WONK" 0;
+  font-weight: 360;
+  line-height: 1.22;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 44px
+    color-mix(in oklch, var(--stage-deep) 85%, transparent);
+}
+
+.subline {
+  margin: 0;
+  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  font-style: italic;
+  color: var(--ivory);
+  opacity: 0.86;
+}
+
+/* one quiet pill back to the home page (the contact door's closed-pill recipe) */
+.home {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.8rem 1.5rem;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  color: var(--ivory);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  background: color-mix(in oklch, var(--ivory) 6%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ivory) 38%, transparent);
+  border-radius: 999px;
+  transition:
+    color 0.4s ease,
+    background 0.4s ease,
+    border-color 0.4s ease;
+}
+
+.home:hover {
+  background: color-mix(in oklch, var(--ivory) 10%, transparent);
+  border-color: color-mix(in oklch, var(--ivory) 62%, transparent);
+}
+
+.home:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--ivory) 70%, transparent);
+  outline-offset: 3px;
+}
+
+.homeArrow {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home:hover .homeArrow {
+  transform: translateX(-0.2rem);
+}
+
+/* ---------- short / narrow viewports: shrink the line like the hero ---------- */
+@media (max-width: 640px) {
+  .copy {
+    gap: 0.9rem;
+    width: 90vw;
+  }
+
+  .title {
+    font-size: clamp(1.5rem, 7vw, 2.4rem);
+    line-height: 1.18;
+    letter-spacing: 0;
+  }
+}
+
+/* ---------- reduced motion: freeze the pill / arrow ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .home,
+  .homeArrow {
+    transition: none;
+  }
+
+  .home:hover .homeArrow {
+    transform: none;
+  }
+}
+
+/* ---------- glass -> solid: lift type contrast and the frame ----------
+   Mirrors the design system's transparency / contrast block: the type runs at
+   full strength and the quiet pill's frame lifts to a solid, opaque line. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .code,
+  .subline {
+    opacity: 1;
+  }
+
+  .home {
+    border-color: color-mix(in oklch, var(--ivory) 76%, var(--stage-deep));
+  }
+}
