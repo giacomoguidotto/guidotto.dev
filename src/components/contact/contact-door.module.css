@@ -272,7 +272,8 @@
   border-radius: 999px;
   transition:
     transform 0.2s ease,
-    opacity 0.2s ease;
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .send:hover {
@@ -281,11 +282,16 @@
 
 /* Disabled — while Turnstile verifies, or while a send is in flight (Send and
    the Cmd/Ctrl+Enter path it stands in for are both held). The loud ivory accent
-   simply dims back over the card so it reads as a deliberate "not yet / working"
-   pill — dimmed via opacity so the warm accent never shifts hue. */
+   dims to a muted fill so it reads as a deliberate "not yet / working" pill.
+   We dim the fill rather than the opacity on purpose: the button rides the
+   .reveal cascade, whose animation fills to opacity:1 and would override any
+   opacity we set here. The mix is taken in oklab (not oklch) so it slides
+   straight through neutral grey instead of rotating the warm hue around through
+   green. */
 .send:disabled {
+  color: color-mix(in oklab, var(--stage-3) 80%, transparent);
   cursor: not-allowed;
-  opacity: 0.45;
+  background: color-mix(in oklab, var(--ivory) 46%, var(--stage-1));
   transform: none;
 }
 
