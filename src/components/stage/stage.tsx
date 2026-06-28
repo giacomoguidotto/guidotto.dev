@@ -1697,6 +1697,57 @@ function MotionStage() {
       focusedEl = null;
     };
 
+    // --- Keyboard entry into the contact sheet -----------------------------
+    // In motion mode the work tiles are not focusable until the morph resolves
+    // (they gain their href only past RESOLVE_AT), and the masthead is the only
+    // focusable before the stage — so a forward Tab from it would skip the whole
+    // showcase. We intercept that single Tab: drive the handoff to its resolved
+    // snap, then move focus onto the first landed work, so the keyboard walks the
+    // same narrative the scroll tells. Everything after stays native — once the
+    // tiles are live anchors the browser's own scroll-into-view drives the morph,
+    // and Shift+Tab steps back to the masthead on its own. This couples to the
+    // masthead link's global `.masthead__home` class (the page's first focusable).
+    let landRaf = 0;
+    const onEntryTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || event.shiftKey || event.defaultPrevented) {
+        return;
+      }
+      const active = document.activeElement;
+      if (
+        !(active instanceof HTMLElement && active.matches(".masthead__home"))
+      ) {
+        return;
+      }
+      const snap = snapResolvedRef.current;
+      const firstTile = grid.querySelector<HTMLElement>("a[data-key]");
+      if (!(snap && firstTile)) {
+        return; // not measured yet — let the native Tab fall through
+      }
+      event.preventDefault();
+      snap.scrollIntoView({ behavior: "smooth", block: "start" });
+      // The scroll drives setPhase every frame; focus the work the instant it
+      // goes live, with preventScroll so the focus call never interrupts the
+      // in-flight smooth scroll.
+      const deadline = performance.now() + 1500;
+      const land = () => {
+        if (firstTile.hasAttribute("href")) {
+          firstTile.focus({ preventScroll: true });
+          return;
+        }
+        if (performance.now() > deadline) {
+          // The smooth scroll never reached resolve (blocked or aborted): land
+          // the snap hard, force a phase pass, then focus so the user is never
+          // stranded on the masthead.
+          snap.scrollIntoView({ block: "start" });
+          compute();
+          firstTile.focus({ preventScroll: true });
+          return;
+        }
+        landRaf = requestAnimationFrame(land);
+      };
+      landRaf = requestAnimationFrame(land);
+    };
+
     let raf = 0;
     const onScroll = () => {
       if (raf === 0) {
@@ -1751,6 +1802,9 @@ function MotionStage() {
     stage.addEventListener("pointerleave", onLeave);
     stage.addEventListener("focusin", onFocusIn);
     stage.addEventListener("focusout", onFocusOut);
+    // Bound on the document, not the stage: the masthead link it watches lives
+    // outside the stage subtree.
+    document.addEventListener("keydown", onEntryTab);
     // The grid box (and so the scatter deltas) can shift after web fonts swap in or
     // any reflow; re-measure so the FLIP stays true.
     //
@@ -1772,9 +1826,13 @@ function MotionStage() {
       stage.removeEventListener("pointerleave", onLeave);
       stage.removeEventListener("focusin", onFocusIn);
       stage.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("keydown", onEntryTab);
       observer.disconnect();
       if (raf !== 0) {
         cancelAnimationFrame(raf);
+      }
+      if (landRaf !== 0) {
+        cancelAnimationFrame(landRaf);
       }
       cancelAnimationFrame(readyRaf);
       stage.classList.remove(styles.ready);
