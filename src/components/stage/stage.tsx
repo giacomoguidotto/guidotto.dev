@@ -1405,6 +1405,11 @@ function MobileMotionStage() {
       }
       lastProgress = progress;
       apply(progress);
+      // The proximity snap only exists to finish a half-done morph: once resolved
+      // (p === 1) drop it so the snap never re-grabs near the resolved target; restore
+      // it on the way back up so it can still assist a reverse handoff.
+      document.documentElement.style.scrollSnapType =
+        progress >= 1 ? "none" : "y proximity";
     };
 
     const tileFrom = (target: EventTarget | null): HTMLElement | null =>
@@ -1845,6 +1850,11 @@ function MotionStage() {
       }
       lastProgress = progress;
       apply(progress);
+      // The proximity snap only exists to finish a half-done morph: once resolved
+      // (p === 1) drop it so the snap never re-grabs near the resolved target; restore
+      // it on the way back up so it can still assist a reverse handoff.
+      document.documentElement.style.scrollSnapType =
+        progress >= 1 ? "none" : "y proximity";
     };
 
     const tileFrom = (target: EventTarget | null): HTMLElement | null =>
