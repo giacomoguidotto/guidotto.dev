@@ -67,6 +67,7 @@ import { startGyroTilt } from "~/components/showcase/gyro-tilt";
 import { ShowcaseRoot } from "~/components/showcase/showcase-root";
 import { content, type Project } from "~/content";
 import { haptic } from "~/lib/haptic";
+import { startPager } from "./pager";
 import { ProjectTile, type TileModel } from "./project-tile";
 import styles from "./stage.module.css";
 
@@ -1405,11 +1406,9 @@ function MobileMotionStage() {
       }
       lastProgress = progress;
       apply(progress);
-      // The proximity snap only exists to finish a half-done morph: once resolved
-      // (p === 1) drop it so the snap never re-grabs near the resolved target; restore
-      // it on the way back up so it can still assist a reverse handoff.
-      document.documentElement.style.scrollSnapType =
-        progress >= 1 ? "none" : "y proximity";
+      // The pager (a fling = one step) owns the scroll here, not a CSS snap, so the
+      // root snap stays off through the whole morph; each step's smooth scrollTo scrubs
+      // the hero -> card handoff cleanly. No proximity toggle to manage on mobile.
     };
 
     const tileFrom = (target: EventTarget | null): HTMLElement | null =>
@@ -1513,14 +1512,27 @@ function MobileMotionStage() {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", remeasure);
-    // Enable the handoff's proximity scroll-snap (Part B / #27). The document is the
-    // scroller, so the snap type lives on the root element; it is scoped to this stage's
-    // lifetime and is `proximity` — never `mandatory` — so it only assists a half-finished
-    // handoff and never traps free scroll. The carousel items carry scroll-snap-align:
-    // center (proof-grid mobile CSS), so a settled scroll eases the nearest card to centre.
+    // The reels-style pager: a fling = one step, regardless of force. The stops are
+    // hero rest (the stage top, p === 0) then each card's centred slot; one fling
+    // smooth-scrolls to the next, which scrubs the morph as a timed handoff. Past the
+    // last card the pager releases to native scroll into the finale (clean exit), so
+    // the band is a deliberate stepper, not a trap. The root CSS snap stays off
+    // (`none`) — the pager owns the scroll; restored on cleanup.
     const rootStyle = document.documentElement.style;
     const prevSnapType = rootStyle.scrollSnapType;
-    rootStyle.scrollSnapType = "y proximity";
+    rootStyle.scrollSnapType = "none";
+    const pager = startPager({
+      stops: () => {
+        const stageTop = window.scrollY + stage.getBoundingClientRect().top;
+        const mid = window.innerHeight / 2;
+        const cardStops = carouselTiles.map((el) => {
+          const poster = el.querySelector<HTMLElement>("[data-poster]");
+          const box = (poster ?? el).getBoundingClientRect();
+          return window.scrollY + box.top + box.height / 2 - mid;
+        });
+        return [stageTop, ...cardStops];
+      },
+    });
 
     // The coordinator listens on the whole stage so it catches both the carousel cards
     // and the absolutely-placed showpiece in the pin's vitrine layer.
@@ -1576,6 +1588,7 @@ function MobileMotionStage() {
       document.removeEventListener("pointerdown", onDocPointerDown);
       coarseMql.removeEventListener("change", onCoarseChange);
       field.stop();
+      pager.stop();
       observer.disconnect();
       centerObserver.disconnect();
       if (raf !== 0) {
