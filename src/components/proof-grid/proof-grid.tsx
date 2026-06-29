@@ -105,7 +105,7 @@ export function ProofGrid() {
       centeredKey = key;
       // Snap haptic on a new centre settle (Android buzzes; silent on iOS; off
       // under reduced motion — see ~/lib/haptic). Pure progressive enhancement.
-      haptic(8);
+      haptic(15);
     };
     const observer = new IntersectionObserver(
       (entries) => {

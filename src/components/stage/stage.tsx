@@ -1322,7 +1322,7 @@ function MobileMotionStage() {
       const key = el.dataset.key;
       if (key && key !== centeredKey) {
         centeredKey = key;
-        haptic(8);
+        haptic(15);
       }
     };
 
