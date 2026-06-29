@@ -425,6 +425,11 @@
   background: color-mix(in oklch, var(--accent) 12%, var(--stage-2));
   border-radius: 1.1rem;
   box-shadow: 0 18px 40px -22px oklch(0 0 0 / 0.85);
+  /* gentle lift when lit; no float, no parallax at rest (matches the proof cards) */
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.5s ease;
 }
 
 .vessel:focus-visible {
@@ -444,6 +449,31 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  transition:
+    border-color 0.5s ease,
+    box-shadow 0.5s ease;
+}
+
+/* hover / focus glow — the centerpiece vessel is the live repo link, so it
+   answers like the proof cards do when loud: a gentle lift, an accent-tinted
+   cast under the tile, and the glass frame lighting up. Driven by real
+   :hover / :focus-visible here (a single standalone affordance, not the grid's
+   single-active coordinator), matching the hero vessels in globals.css. */
+.vessel:hover,
+.vessel:focus-visible {
+  box-shadow:
+    0 18px 40px -22px oklch(0 0 0 / 0.85),
+    0 22px 54px -20px color-mix(in oklch, var(--accent) 52%, transparent);
+  transform: translate3d(0, 0, 0) scale(1.03);
+}
+
+.vessel:hover .vesselGlass,
+.vessel:focus-visible .vesselGlass {
+  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
+  box-shadow:
+    inset 0 1px 1px color-mix(in oklch, var(--glass-specular) 80%, white),
+    inset 0 -22px 44px var(--glass-inner-shadow),
+    inset 0 0 26px -6px color-mix(in oklch, var(--accent) 55%, transparent);
 }
 
 .landingTag {
@@ -550,6 +580,18 @@
 
   .knobDot {
     transition: none;
+  }
+
+  /* the parked vessel still lights up (a color-only cue stays), but without the
+     eased transition or the scale lift */
+  .vessel,
+  .vesselGlass {
+    transition: none;
+  }
+
+  .vessel:hover,
+  .vessel:focus-visible {
+    transform: none;
   }
 }
 
