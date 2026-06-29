@@ -224,22 +224,34 @@ export function LiveInstrument() {
       begin();
       return;
     }
-    // One persistent observer: it triggers the load on first approach (200px
-    // rootMargin) and tracks visibility so the scene's frame loop pauses when the
-    // finale leaves the viewport. Because no frames run off-screen, the once-on-view
-    // autoplay cannot play unseen either (the timeline only advances on frames).
-    const observer = new IntersectionObserver(
+    // Load fires on first approach (the instrument is at most 200px below the
+    // fold) so the heavy asset is ready by the time the visitor arrives.
+    const loader = new IntersectionObserver(
       (entries) => {
-        const visible = entries.some((entry) => entry.isIntersecting);
-        if (visible) {
+        if (entries.some((entry) => entry.isIntersecting)) {
           begin();
         }
-        setActive(visible);
       },
       { rootMargin: "200px" }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+    loader.observe(el);
+    // "active" runs the frame loop, and so the once-on-view autoplay (the timeline
+    // only advances on frames). It turns on only when the instrument is MOSTLY in
+    // view, with no lookahead margin — so the training cannot play out unseen while
+    // the visitor is still reading the grid above. It starts when they actually
+    // scroll the finale into the viewport, and pauses when it mostly leaves.
+    const gate = new IntersectionObserver(
+      (entries) => {
+        const seen = entries.some((entry) => entry.intersectionRatio >= 0.6);
+        setActive(seen);
+      },
+      { threshold: [0, 0.6] }
+    );
+    gate.observe(el);
+    return () => {
+      loader.disconnect();
+      gate.disconnect();
+    };
   }, [reduced, constrained]);
 
   const failToStatic = useCallback(() => {

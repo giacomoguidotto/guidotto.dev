@@ -207,7 +207,7 @@ export function Signature() {
           obs.disconnect();
         }
       },
-      { threshold: 0.45 }
+      { threshold: 0.9 }
     );
     // Observe the <svg> root, not the inner <path>s: intersection on SVG geometry
     // children is unreliable across engines, and a missed callback is the same
