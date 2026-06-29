@@ -33,9 +33,11 @@ export interface Pager {
   readonly stop: () => void;
 }
 
-const SWIPE_THRESHOLD = 36;
-const SETTLE_MS = 620;
-const ARRIVE_PX = 4;
+const SWIPE_THRESHOLD = 24;
+const SETTLE_MS = 360;
+const ARRIVE_PX = 6;
+// Travel before the gesture's direction is decided and the pager claims it.
+const INTENT_PX = 8;
 
 const reduce = (): boolean =>
   typeof window !== "undefined" &&
@@ -62,7 +64,12 @@ export function startPager(options: PagerOptions): Pager {
   let locked = false;
   let unlockTimer = 0;
   let touchY = 0;
+  // The pager either OWNS the touch (cancel every move so no native scroll or
+  // post-release momentum exists — a fling is fully discrete) or RELEASES it
+  // (at an edge, native scroll into the finale / top). Decided once per gesture,
+  // after INTENT_PX of travel reveals the direction.
   let touchOwned = false;
+  let touchDecided = false;
 
   // Step one stop in `dir` (+1 down, -1 up). Returns true if the pager owns the
   // gesture (a step inside the band); false at the edges, where the caller lets
@@ -103,26 +110,30 @@ export function startPager(options: PagerOptions): Pager {
   const onTouchStart = (event: TouchEvent) => {
     touchY = event.touches[0]?.clientY ?? 0;
     touchOwned = false;
+    touchDecided = false;
   };
 
   const onTouchMove = (event: TouchEvent) => {
     const dy = touchY - (event.touches[0]?.clientY ?? touchY);
-    if (Math.abs(dy) < swipe) {
-      return;
+    // Decide once the direction is clear: own the gesture only when the next step
+    // stays in the band, otherwise release it so the browser scrolls into the
+    // finale / back to top (never trapped).
+    if (!touchDecided && Math.abs(dy) >= INTENT_PX) {
+      touchDecided = true;
+      const stops = options.stops();
+      const next = nearest(stops, window.scrollY) + (dy > 0 ? 1 : -1);
+      touchOwned = next >= 0 && next < stops.length;
     }
-    const dir = dy > 0 ? 1 : -1;
-    const stops = options.stops();
-    const next = nearest(stops, window.scrollY) + dir;
-    // Own the gesture only when the next step stays in the band; at an edge let
-    // the browser scroll into the finale / back to top.
-    if (next >= 0 && next < stops.length) {
-      touchOwned = true;
+    // Once owned, cancel EVERY move so the page never scrolls natively — that is
+    // what kills the momentum that was firing a second snap on a hard fling.
+    if (touchOwned) {
       event.preventDefault();
     }
   };
 
   const onTouchEnd = (event: TouchEvent) => {
     if (!touchOwned || locked) {
+      touchOwned = false;
       return;
     }
     const dy = touchY - (event.changedTouches[0]?.clientY ?? touchY);
