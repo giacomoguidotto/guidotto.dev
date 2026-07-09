@@ -28,7 +28,24 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
+      "complexity": {
+        "noUselessReturn": "off"
+      },
+      "performance": {
+        "noAwaitInLoops": "off",
+        "noJsxPropsBind": "off",
+        "noSyncScripts": "off"
+      },
+      "style": {
+        "noIncrementDecrement": "off",
+        "useConsistentMethodSignatures": "off",
+        "useDestructuring": "off"
+      },
       "suspicious": {
+        "noEqualsToNull": "off",
+        "noUnknownAttribute": "off",
+        "noUnnecessaryConditions": "off",
+        "noShadow": "off",
         "noUnknownAtRules": "off"
       }
     },
@@ -41,7 +58,12 @@
     "enabled": true,
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "noDuplicateClasses": "off",
+        "organizeImports": "on",
+        "useSortedAttributes": "off",
+        "useSortedInterfaceMembers": "off",
+        "useSortedKeys": "off",
+        "useSortedProperties": "off"
       }
     }
   },
