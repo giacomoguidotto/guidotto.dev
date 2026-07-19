@@ -32,17 +32,17 @@ describe("isDataConstrained", () => {
     );
   });
 
-  test.each([
-    "2g",
-    "slow-2g",
-  ])("a slow effectiveType (%s) constrains", (effectiveType) => {
-    expect(isDataConstrained({ effectiveType })).toBe(true);
-  });
+  test.each(["2g", "slow-2g"])(
+    "a slow effectiveType (%s) constrains",
+    (effectiveType) => {
+      expect(isDataConstrained({ effectiveType })).toBe(true);
+    }
+  );
 
-  test.each([
-    "3g",
-    "4g",
-  ])("a fast effectiveType (%s) alone does not constrain", (effectiveType) => {
-    expect(isDataConstrained({ effectiveType })).toBe(false);
-  });
+  test.each(["3g", "4g"])(
+    "a fast effectiveType (%s) alone does not constrain",
+    (effectiveType) => {
+      expect(isDataConstrained({ effectiveType })).toBe(false);
+    }
+  );
 });
